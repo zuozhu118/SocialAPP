@@ -1,0 +1,70 @@
+{
+  "pages": [
+    {
+      "path": "pages/match/index",
+      "style": {
+        "navigationBarTitleText": "匹配",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/square/index",
+      "style": {
+        "navigationBarTitleText": "广场",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/notifications/index",
+      "style": {
+        "navigationBarTitleText": "通知",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": {
+        "navigationBarTitleText": "我的",
+        "navigationStyle": "custom"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "",
+    "navigationBarBackgroundColor": "#FAFAFA",
+    "backgroundColor": "#FAFAFA"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#A8B89A",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/match/index",
+        "text": "匹配",
+        "iconPath": "static/tabbar/match.png",
+        "selectedIconPath": "static/tabbar/match-active.png"
+      },
+      {
+        "pagePath": "pages/square/index",
+        "text": "广场",
+        "iconPath": "static/tabbar/square.png",
+        "selectedIconPath": "static/tabbar/square-active.png"
+      },
+      {
+        "pagePath": "pages/notifications/index",
+        "text": "通知",
+        "iconPath": "static/tabbar/notify.png",
+        "selectedIconPath": "static/tabbar/notify-active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "static/tabbar/profile.png",
+        "selectedIconPath": "static/tabbar/profile-active.png"
+      }
+    ]
+  }
+}

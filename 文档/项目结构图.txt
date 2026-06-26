@@ -1,0 +1,149 @@
+SocialAPP/
+├── .gitignore
+├── index.html
+├── package.json
+├── vite.config.js
+├── pages.json                 # 页面路由配置
+├── manifest.json              # 应用配置
+├── uni.scss                   # 全局样式变量
+├── App.vue                    # 应用入口
+├── main.js                    # 主入口文件
+│
+├── src/
+│   ├── api/                   # API 接口层
+│   │   ├── index.js           # 统一导出
+│   │   ├── request.js         # 请求封装 (拦截器)
+│   │   ├── user.js            # 用户相关接口
+│   │   ├── match.js           # 匹配相关接口
+│   │   ├── dynamic.js         # 动态相关接口
+│   │   ├── auth.js            # 认证相关接口
+│   │   └── report.js          # 举报相关接口
+│   │
+│   ├── assets/                # 静态资源
+│   │   ├── images/            # 图片资源
+│   │   │   ├── icons/         # 图标文件
+│   │   │   ├── tabbar/        # 底部导航图标
+│   │   │   └── default/       # 默认占位图
+│   │   └── fonts/             # 字体文件
+│   │
+│   ├── components/            # 全局公共组件
+│   │   ├── common/            # 通用组件
+│   │   │   ├── CustomButton.vue      # 自定义按钮
+│   │   │   ├── CustomCard.vue        # 卡片容器
+│   │   │   ├── CustomNavbar.vue      # 自定义导航栏
+│   │   │   ├── EmptyState.vue        # 空状态
+│   │   │   └── LoadingSpinner.vue    # 加载动画
+│   │   ├── auth/              # 认证相关组件
+│   │   │   ├── AuthBadge.vue         # 认证徽章
+│   │   │   ├── ShieldIcon.vue        # 盾牌安全图标
+│   │   │   └── RealNameAuth.vue      # 实名认证组件
+│   │   ├── user/              # 用户相关组件
+│   │   │   ├── UserAvatar.vue        # 用户头像
+│   │   │   ├── UserCard.vue          # 用户卡片
+│   │   │   └── UserTags.vue          # 用户标签组
+│   │   └── dynamic/           # 动态相关组件
+│   │       ├── DynamicCard.vue       # 动态卡片
+│   │       ├── DynamicImage.vue      # 动态图片
+│   │       └── QualityBadge.vue      # 优质动态角标
+│   │
+│   ├── composables/           # 组合式函数 (Vue3 Composition API)
+│   │   ├── index.js           # 统一导出
+│   │   ├── useAuth.js         # 认证相关逻辑
+│   │   ├── useUser.js         # 用户信息相关
+│   │   ├── useMatch.js        # 匹配相关逻辑
+│   │   ├── useRequest.js      # 请求相关
+│   │   ├── useValidator.js    # 表单验证
+│   │   └── usePagination.js   # 分页相关
+│   │
+│   ├── pages/                 # 页面目录 (按模块划分)
+│   │   ├── match/             # 匹配推荐页
+│   │   │   ├── index.vue      # 匹配主页面
+│   │   │   └── components/    # 页面私有组件
+│   │   │       ├── MatchCard.vue     # 匹配卡片
+│   │   │       └── MatchAction.vue   # 匹配操作按钮
+│   │   │
+│   │   ├── square/            # 动态广场页
+│   │   │   ├── index.vue      # 广场主页面
+│   │   │   └── components/
+│   │   │       ├── DynamicList.vue   # 动态列表
+│   │   │       └── PublishBtn.vue    # 发布按钮
+│   │   │
+│   │   ├── notifications/     # 通知页
+│   │   │   ├── index.vue
+│   │   │   └── components/
+│   │   │       └── NoticeItem.vue    # 通知项
+│   │   │
+│   │   ├── profile/           # 个人主页
+│   │   │   ├── index.vue
+│   │   │   ├── settings.vue           # 设置页
+│   │   │   ├── privacy.vue            # 隐私设置
+│   │   │   ├── equity.vue             # 权益中心
+│   │   │   └── components/
+│   │   │       ├── ProfileHeader.vue  # 个人头部
+│   │   │       ├── ProfileInfo.vue    # 个人信息
+│   │   │       └── ProfileDynamic.vue # 个人动态
+│   │   │
+│   │   ├── auth/              # 认证相关页面
+│   │   │   ├── login.vue              # 登录/注册
+│   │   │   ├── realname.vue           # 实名认证
+│   │   │   ├── education.vue          # 学历认证
+│   │   │   └── work.vue               # 工作认证
+│   │   │
+│   │   ├── dynamic/           # 动态详情
+│   │   │   ├── detail.vue             # 动态详情
+│   │   │   └── publish.vue            # 发布动态
+│   │   │
+│   │   └── common/            # 公共页面
+│   │       ├── webview.vue            # 内嵌网页
+│   │       ├── report.vue             # 举报页面
+│   │       └── anti-fraud.vue         # 反诈专区
+│   │
+│   ├── store/                 # Pinia 状态管理
+│   │   ├── index.js           # store 统一导出
+│   │   ├── user.js            # 用户状态
+│   │   ├── auth.js            # 认证状态
+│   │   ├── match.js           # 匹配状态
+│   │   ├── dynamic.js         # 动态状态
+│   │   └── app.js             # 应用全局状态
+│   │
+│   ├── styles/                # 全局样式
+│   │   ├── index.scss         # 样式统一入口
+│   │   ├── variables.scss     # 样式变量 (符合设计规范)
+│   │   ├── mixins.scss        # 混入样式
+│   │   ├── reset.scss         # 样式重置
+│   │   └── common.scss        # 通用样式类
+│   │
+│   ├── utils/                 # 工具函数
+│   │   ├── index.js           # 统一导出
+│   │   ├── request.js         # 请求封装
+│   │   ├── storage.js         # 本地存储
+│   │   ├── validator.js       # 表单验证
+│   │   ├── date.js            # 日期处理
+│   │   ├── image.js           # 图片处理
+│   │   └── constants.js       # 常量定义
+│   │
+│   ├── directives/            # 自定义指令
+│   │   ├── index.js           # 统一导出
+│   │   ├── permission.js      # 权限控制
+│   │   └── lazyLoad.js        # 图片懒加载
+│   │
+│   ├── plugins/               # 插件
+│   │   ├── index.js           # 统一导出
+│   │   ├── uni-ui.js          # uni-ui 组件注册
+│   │   └── dayjs.js           # dayjs 时间处理
+│   │
+│   ├── config/                # 配置文件
+│   │   ├── index.js           # 统一导出
+│   │   ├── env.js             # 环境变量
+│   │   └── routes.js          # 路由配置
+│   │
+│   ├── static/                # 静态资源 (不会被编译)
+│   │   └── tabbar/            # 底部导航图标
+│   │
+│   └── hybrid/                # 混合开发 (原生代码)
+│
+├── .vscode/                   # VSCode 配置
+│   ├── extensions.json
+│   └── settings.json
+│
+└── .hbuilderx/                # HBuilderX 配置
