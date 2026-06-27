@@ -1,0 +1,68 @@
+// ============================================================
+// 样式重置
+// ============================================================
+
+/* 统一盒模型 */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* 页面基础样式 */
+page {
+  background-color: $bg-page;
+  font-family: $font-family;
+  color: $text-primary;
+  font-size: $font-size-sm;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 图片默认块级 */
+image {
+  display: block;
+}
+
+/* 去掉默认边框 */
+input,
+textarea,
+button {
+  border: none;
+  outline: none;
+}
+
+/* 去掉默认列表样式 */
+ul,
+ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* 去掉默认链接样式 */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* 滚动条美化 (仅 H5) */
+/* 注意: 小程序不支持滚动条样式 */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: $border-light;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: $primary-color;
+}

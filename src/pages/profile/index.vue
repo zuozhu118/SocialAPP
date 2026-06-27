@@ -135,30 +135,32 @@
 
     // ===== 操作方法 =====
     const goToEquity = () => {
-        uni.showToast({
-            title: '权益中心开发中',
-            icon: 'none'
+        uni.navigateTo({
+            url: '/pages/profile/equity'
         })
     }
 
     const goToPrivacy = () => {
-        uni.showToast({
-            title: '隐私设置开发中',
-            icon: 'none'
+        uni.navigateTo({
+            url: '/pages/profile/privacy'
         })
     }
 
     const goToAntiFraud = () => {
-        uni.showToast({
-            title: '反诈专区开发中',
-            icon: 'none'
+        uni.navigateTo({
+            url: '/pages/common/antiFraud'
         })
     }
 
     const handleFeedback = () => {
-        uni.showToast({
-            title: '意见反馈开发中',
-            icon: 'none'
+        uni.navigateTo({
+            url: '/pages/common/feedback'
+        })
+    }
+
+    const goToSettings = () => {
+        uni.navigateTo({
+            url: '/pages/profile/settings'
         })
     }
 </script>

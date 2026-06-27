@@ -27,6 +27,77 @@
         "navigationBarTitleText": "我的",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/auth/login",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/auth/realname",
+      "style": {
+        "navigationBarTitleText": "实名认证",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/dynamic/detail",
+      "style": {
+        "navigationBarTitleText": "动态详情",
+        "navigationStyle": "custom"
+      }
+    },
+
+    {
+      "path": "pages/dynamic/publish",
+      "style": {
+        "navigationBarTitleText": "发布动态",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/common/antiFraud",
+      "style": {
+        "navigationBarTitleText": "反诈专区",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/common/report",
+      "style": {
+        "navigationBarTitleText": "举报",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/profile/settings",
+      "style": {
+        "navigationBarTitleText": "设置",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/profile/privacy",
+      "style": {
+        "navigationBarTitleText": "隐私设置",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/profile/equity",
+      "style": {
+        "navigationBarTitleText": "权益中心",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/common/feedback",
+      "style": {
+        "navigationBarTitleText": "意见反馈",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "globalStyle": {
