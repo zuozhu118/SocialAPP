@@ -26,3 +26,8 @@ UploadFile
 /UploadFile/src_pages.json
 /UploadFile/src_pages_dynamic_publish.vue
 /UploadFile/src_pages_profile_index.vue
+/UploadFile/src_pages_auth_education.vue
+/UploadFile/src_pages_auth_login.vue
+/UploadFile/src_pages_auth_realname.vue
+/UploadFile/src_pages_auth_work.vue
+/UploadFile/src_pages_square_index.vue
