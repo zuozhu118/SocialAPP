@@ -96,7 +96,7 @@ SocialAPP/
 │   │   └── common/            # 公共页面
 │   │       ├── webview.vue            # 内嵌网页
 │   │       ├── report.vue             # 举报页面
-│   │       └── anti-fraud.vue         # 反诈专区
+│   │       └── antiFraud.vue         # 反诈专区
 │   │
 │   ├── store/                 # Pinia 状态管理
 │   │   ├── index.js           # store 统一导出

@@ -4,7 +4,7 @@
         <view class="square-navbar">
             <text class="square-navbar__title">动态广场</text>
             <view class="square-navbar__right">
-                <text class="square-navbar__icon">📷</text>
+                <text class="square-navbar__icon" @click="handlePublish">📷</text>
             </view>
         </view>
 
@@ -14,9 +14,10 @@
                      @scrolltolower="loadMore">
             <view v-for="(item, index) in dynamicList"
                   :key="item.id"
-                  class="square-item">
+                  class="square-item"
+                  @click="goToDetail(item.id)">
                 <!-- 用户信息 -->
-                <view class="square-item__header">
+                <view class="square-item__header" @click.stop>
                     <image class="square-item__avatar" :src="item.userAvatar" mode="aspectFill" />
                     <view class="square-item__user">
                         <view class="square-item__name">
@@ -29,7 +30,7 @@
                 </view>
 
                 <!-- 动态图片 -->
-                <view class="square-item__image-wrapper">
+                <view class="square-item__image-wrapper" @click.stop="previewImage(index, 0)">
                     <image class="square-item__image"
                            :src="item.images[0]"
                            mode="aspectFill" />
@@ -47,7 +48,7 @@
                 </view>
 
                 <!-- 互动栏 -->
-                <view class="square-item__actions">
+                <view class="square-item__actions" @click.stop>
                     <view class="square-item__action" @click="handleLike(index)">
                         <text class="square-item__action-icon">❤️</text>
                         <text class="square-item__action-count">{{ item.likes }}</text>
@@ -58,6 +59,9 @@
                     </view>
                     <view class="square-item__action" @click="handleShare(index)">
                         <text class="square-item__action-icon">🔗</text>
+                    </view>
+                    <view class="square-item__action" @click="handleReport(index)">
+                        <text class="square-item__action-icon">🚩</text>
                     </view>
                 </view>
             </view>
@@ -152,6 +156,28 @@
 
     const hasMore = ref(false)
 
+    // ===== 跳转方法 =====
+    const goToDetail = (id) => {
+        uni.navigateTo({
+            url: `/pages/dynamic/detail?id=${id}`
+        })
+    }
+
+    const goToPublish = () => {
+        uni.navigateTo({
+            url: '/pages/dynamic/publish'
+        })
+    }
+
+    // ===== 图片预览 =====
+    const previewImage = (itemIndex, imageIndex) => {
+        const item = dynamicList.value[itemIndex]
+        uni.previewImage({
+            current: imageIndex,
+            urls: item.images
+        })
+    }
+
     // ===== 操作方法 =====
     const handleLike = (index) => {
         const item = dynamicList.value[index]
@@ -163,28 +189,43 @@
     }
 
     const handleComment = (index) => {
-        uni.showToast({
-            title: '评论功能开发中',
-            icon: 'none'
+        const item = dynamicList.value[index]
+        // 跳转到详情页并定位到评论
+        uni.navigateTo({
+            url: `/pages/dynamic/detail?id=${item.id}&focus=comment`
         })
     }
 
     const handleShare = (index) => {
+        const item = dynamicList.value[index]
+        uni.showShareMenu({
+            success: () => {
+                // 分享成功
+            }
+        })
+        // 或者使用自定义分享
         uni.showToast({
-            title: '分享功能开发中',
+            title: '点击右上角分享',
             icon: 'none'
         })
     }
 
+    const handleReport = (index) => {
+        uni.navigateTo({
+            url: '/pages/common/report'
+        })
+    }
+
     const handlePublish = () => {
-        uni.showToast({
-            title: '发布功能开发中',
-            icon: 'none'
+        uni.navigateTo({
+            url: '/pages/dynamic/publish'
         })
     }
 
     const loadMore = () => {
         console.log('加载更多...')
+        // 模拟加载更多
+        // hasMore.value = false
     }
 </script>
 
@@ -194,6 +235,7 @@
         background-color: #FAFAFA;
     }
 
+    // ----- 导航栏 -----
     .square-navbar {
         display: flex;
         align-items: center;
@@ -219,18 +261,30 @@
 
     .square-navbar__icon {
         font-size: 20px;
+        cursor: pointer;
     }
 
+    .square-navbar__icon:active {
+        opacity: 0.6;
+    }
+
+    // ----- 动态列表 -----
     .square-list {
         height: calc(100vh - 76px);
         padding: 0 24px;
     }
 
+    // ----- 动态项 -----
     .square-item {
         background-color: #FFFFFF;
         border-radius: 20px;
         margin-bottom: 16px;
         overflow: hidden;
+        cursor: pointer;
+    }
+
+    .square-item:active {
+        opacity: 0.95;
     }
 
     .square-item__header {
@@ -328,6 +382,7 @@
         color: #999999;
     }
 
+    // ----- 互动栏 -----
     .square-item__actions {
         display: flex;
         align-items: center;
@@ -356,6 +411,7 @@
         color: #999999;
     }
 
+    // ----- 加载更多 -----
     .square-loading {
         text-align: center;
         padding: 16px 0 24px;
@@ -363,6 +419,7 @@
         color: #999999;
     }
 
+    // ----- 发布按钮 -----
     .square-publish {
         position: fixed;
         bottom: 100px;

@@ -4,7 +4,7 @@
         <view class="profile-navbar">
             <text class="profile-navbar__title">我的</text>
             <view class="profile-navbar__right">
-                <text class="profile-navbar__icon">⚙️</text>
+                <text class="profile-navbar__icon" @click="goToSettings">⚙️</text>
             </view>
         </view>
 
@@ -23,17 +23,34 @@
 
             <!-- 认证徽章 -->
             <view class="profile-header__badges">
-                <view class="profile-header__badge">
+                <view class="profile-header__badge" @click="goToRealNameAuth">
                     <text class="profile-header__badge-icon">🛡️</text>
                     已实名
                 </view>
-                <view class="profile-header__badge profile-header__badge--dark">
+                <view class="profile-header__badge profile-header__badge--dark"
+                      @click="goToEducationAuth">
                     <text class="profile-header__badge-icon">🎓</text>
                     学历认证
                 </view>
-                <view class="profile-header__badge profile-header__badge--dark">
+                <view class="profile-header__badge profile-header__badge--dark"
+                      @click="goToWorkAuth">
                     <text class="profile-header__badge-icon">💼</text>
                     在职认证
+                </view>
+            </view>
+
+            <!-- 快捷认证入口 -->
+            <view class="profile-header__auth-hint">
+                <text class="profile-header__auth-hint-text">
+                    💡 完成更多认证，提升匹配权重
+                </text>
+                <view class="profile-header__auth-hint-actions">
+                    <text class="profile-header__auth-hint-btn" @click="goToEducationAuth">
+                        🎓 学历认证
+                    </text>
+                    <text class="profile-header__auth-hint-btn" @click="goToWorkAuth">
+                        💼 工作认证
+                    </text>
                 </view>
             </view>
         </view>
@@ -87,11 +104,17 @@
             <view class="profile-dynamics">
                 <view v-for="(item, index) in myDynamics"
                       :key="item.id"
-                      class="profile-dynamics__item">
+                      class="profile-dynamics__item"
+                      @click="goToDynamicDetail(item.id)">
                     <image class="profile-dynamics__image" :src="item.image" mode="aspectFill" />
                     <view class="profile-dynamics__overlay">
                         <text class="profile-dynamics__count">❤️ {{ item.likes }}</text>
                     </view>
+                </view>
+                <!-- 发布动态占位 -->
+                <view class="profile-dynamics__item profile-dynamics__add" @click="goToPublish">
+                    <text class="profile-dynamics__add-icon">+</text>
+                    <text class="profile-dynamics__add-text">发布动态</text>
                 </view>
             </view>
         </view>
@@ -118,6 +141,11 @@
                 <text class="profile-menu__label">意见反馈</text>
                 <text class="profile-menu__arrow">›</text>
             </view>
+            <view class="profile-menu__item" @click="goToSettings">
+                <text class="profile-menu__icon">⚙️</text>
+                <text class="profile-menu__label">设置</text>
+                <text class="profile-menu__arrow">›</text>
+            </view>
         </view>
     </view>
 </template>
@@ -133,7 +161,7 @@
         { id: 4, image: 'https://picsum.photos/200/200?random=43', likes: 67 }
     ])
 
-    // ===== 操作方法 =====
+    // ===== 跳转方法 =====
     const goToEquity = () => {
         uni.navigateTo({
             url: '/pages/profile/equity'
@@ -163,6 +191,38 @@
             url: '/pages/profile/settings'
         })
     }
+
+    // ===== 认证跳转 =====
+    const goToRealNameAuth = () => {
+        uni.navigateTo({
+            url: '/pages/auth/realname'
+        })
+    }
+
+    const goToEducationAuth = () => {
+        uni.navigateTo({
+            url: '/pages/auth/education'
+        })
+    }
+
+    const goToWorkAuth = () => {
+        uni.navigateTo({
+            url: '/pages/auth/work'
+        })
+    }
+
+    // ===== 动态跳转 =====
+    const goToDynamicDetail = (id) => {
+        uni.navigateTo({
+            url: `/pages/dynamic/detail?id=${id}`
+        })
+    }
+
+    const goToPublish = () => {
+        uni.navigateTo({
+            url: '/pages/dynamic/publish'
+        })
+    }
 </script>
 
 <style lang="scss" scoped>
@@ -172,6 +232,7 @@
         padding-bottom: 20px;
     }
 
+    // ----- 导航栏 -----
     .profile-navbar {
         display: flex;
         align-items: center;
@@ -194,8 +255,14 @@
 
     .profile-navbar__icon {
         font-size: 20px;
+        cursor: pointer;
     }
 
+    .profile-navbar__icon:active {
+        opacity: 0.6;
+    }
+
+    // ----- 个人信息 -----
     .profile-header {
         background-color: #FFFFFF;
         padding: 24px 24px 20px;
@@ -230,6 +297,7 @@
         justify-content: center;
         font-size: 14px;
         border: 2px solid #FFFFFF;
+        cursor: pointer;
     }
 
     .profile-header__name {
@@ -256,6 +324,11 @@
         color: #A8B89A;
         background-color: #F2F5EF;
         border-radius: 12px;
+        cursor: pointer;
+    }
+
+    .profile-header__badge:active {
+        opacity: 0.7;
     }
 
     .profile-header__badge--dark {
@@ -267,6 +340,42 @@
         font-size: 12px;
     }
 
+    .profile-header__auth-hint {
+        margin-top: 14px;
+        padding: 12px 16px;
+        background-color: #F2F5EF;
+        border-radius: 12px;
+        width: 100%;
+    }
+
+    .profile-header__auth-hint-text {
+        font-size: 13px;
+        color: #666666;
+        display: block;
+        text-align: center;
+    }
+
+    .profile-header__auth-hint-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 8px;
+        justify-content: center;
+    }
+
+    .profile-header__auth-hint-btn {
+        padding: 4px 16px;
+        font-size: 13px;
+        color: #A8B89A;
+        background-color: #FFFFFF;
+        border-radius: 16px;
+        cursor: pointer;
+    }
+
+    .profile-header__auth-hint-btn:active {
+        opacity: 0.7;
+    }
+
+    // ----- 卡片 -----
     .profile-card {
         background-color: #FFFFFF;
         margin: 12px 24px;
@@ -317,6 +426,7 @@
         border-radius: 14px;
     }
 
+    // ----- 我的动态 -----
     .profile-dynamics {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -328,6 +438,11 @@
         padding-bottom: 100%;
         border-radius: 8px;
         overflow: hidden;
+        cursor: pointer;
+    }
+
+    .profile-dynamics__item:active {
+        opacity: 0.8;
     }
 
     .profile-dynamics__image {
@@ -352,6 +467,33 @@
         color: #FFFFFF;
     }
 
+    .profile-dynamics__add {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #FAFAFA;
+        border: 2px dashed #E5E5E5;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    .profile-dynamics__add:active {
+        background-color: #F0F0F0;
+    }
+
+    .profile-dynamics__add-icon {
+        font-size: 28px;
+        color: #999999;
+    }
+
+    .profile-dynamics__add-text {
+        font-size: 12px;
+        color: #999999;
+        margin-top: 2px;
+    }
+
+    // ----- 底部菜单 -----
     .profile-menu {
         background-color: #FFFFFF;
         margin: 12px 24px;

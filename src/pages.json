@@ -98,6 +98,20 @@
         "navigationBarTitleText": "意见反馈",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/auth/education",
+      "style": {
+        "navigationBarTitleText": "学历认证",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/auth/work",
+      "style": {
+        "navigationBarTitleText": "工作认证",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "globalStyle": {

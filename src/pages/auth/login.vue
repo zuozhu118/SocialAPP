@@ -1,11 +1,11 @@
 <template>
   <view class="login-page">
     <!-- 顶部装饰 -->
-    <view class="login-header">
-      <view class="login-header__icon">🌿</view>
-      <text class="login-header__title">真实交友</text>
-      <text class="login-header__subtitle">真实 · 纯净 · 安心</text>
-    </view>
+      <view class="login-header">
+          <view class="login-header__icon">✦</view>
+          <text class="login-header__title">真实交友</text>
+          <text class="login-header__subtitle">真实 · 纯净 · 安心</text>
+      </view>
 
     <!-- 登录表单 -->
     <view class="login-form">

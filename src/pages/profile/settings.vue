@@ -120,7 +120,7 @@ const handleBlacklist = () => {
 
 const handleAntiFraud = () => {
   uni.navigateTo({
-    url: '/pages/common/anti-fraud'
+    url: '/pages/common/antiFraud'
   })
 }
 

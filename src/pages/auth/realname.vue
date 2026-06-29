@@ -71,11 +71,13 @@
       <text class="realname-content__desc">请进行活体检测，确保本人操作</text>
       
       <view class="realname-face">
-        <view class="realname-face__box">
-          <text class="realname-face__icon">😊</text>
-          <text class="realname-face__text">请将面部放入框内</text>
-          <view class="realname-face__frame"></view>
-        </view>
+          <view class="realname-face__box">
+              <view class="realname-face__icon-wrapper">
+                  <text class="realname-face__icon">👤</text>
+              </view>
+              <text class="realname-face__text">请将面部放入框内</text>
+              <view class="realname-face__frame"></view>
+          </view>
       </view>
 
       <button class="realname-content__btn" @click="startFaceAuth">
