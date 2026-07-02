@@ -1,33 +1,27 @@
 <template>
     <view class="detail-page">
-        <!-- 导航栏 -->
-        <view class="detail-navbar">
-            <text class="detail-navbar__back" @click="handleBack">‹</text>
-            <text class="detail-navbar__title">动态详情</text>
-            <text class="detail-navbar__more">⋯</text>
-        </view>
+        <CustomNavbar title="动态详情" :show-back="true" @back="handleBack" />
 
-        <!-- 动态内容 -->
         <scroll-view class="detail-content" scroll-y>
             <!-- 用户信息 -->
             <view class="detail-user">
-                <image class="detail-user__avatar" :src="detail.userAvatar" mode="aspectFill" />
-                <view class="detail-user__info">
-                    <view class="detail-user__name">
-                        {{ detail.userName }}
-                        <view v-if="detail.auth.realName" class="detail-user__badge">✓ 已实名</view>
-                    </view>
+                <UserCard :name="detail.userName"
+                          :avatar="detail.userAvatar"
+                          :age="detail.userAge"
+                          :auth="detail.auth"
+                          :avatar-size="44"
+                          :badge-size="18" />
+                <view class="detail-user__right">
                     <text class="detail-user__time">{{ detail.time }}</text>
+                    <view v-if="detail.isQuality" class="detail-user__quality">优质</view>
                 </view>
-                <view v-if="detail.isQuality" class="detail-user__quality">优质</view>
             </view>
 
             <!-- 动态图片 -->
-            <view class="detail-images">
+            <view class="detail-images" :class="{ 'detail-images--single': detail.images.length === 1 }">
                 <image v-for="(img, index) in detail.images"
                        :key="index"
                        class="detail-images__item"
-                       :class="{ 'detail-images__item--single': detail.images.length === 1 }"
                        :src="img"
                        mode="aspectFill"
                        @click="previewImage(index)" />
@@ -36,36 +30,44 @@
             <!-- 动态文字 -->
             <view class="detail-text">
                 <text class="detail-text__content">{{ detail.content }}</text>
-                <text v-if="detail.location" class="detail-text__location">📍 {{ detail.location }}</text>
+                <text v-if="detail.location" class="detail-text__location">
+                    <text class="icon icon-location" /> {{ detail.location }}
+                </text>
             </view>
 
             <!-- 互动栏 -->
             <view class="detail-actions">
                 <view class="detail-actions__item" @click="handleLike">
-                    <text class="detail-actions__icon">❤️</text>
+                    <text class="detail-actions__icon"
+                          :class="[detail.liked ? 'icon-heart-filled' : 'icon-heart']"
+                          :style="{ color: detail.liked ? '#E06060' : '' }" />
                     <text class="detail-actions__count">{{ detail.likes }}</text>
                 </view>
-                <view class="detail-actions__item" @click="handleComment">
-                    <text class="detail-actions__icon">💬</text>
+                <view class="detail-actions__item" @click="focusComment">
+                    <text class="detail-actions__icon icon icon-comment" />
                     <text class="detail-actions__count">{{ detail.comments }}</text>
                 </view>
                 <view class="detail-actions__item" @click="handleShare">
-                    <text class="detail-actions__icon">🔗</text>
+                    <text class="detail-actions__icon icon icon-share" />
                 </view>
                 <view class="detail-actions__item" @click="handleReport">
-                    <text class="detail-actions__icon">🚩</text>
+                    <text class="detail-actions__icon icon icon-flag" />
                 </view>
             </view>
 
             <!-- 评论列表 -->
             <view class="detail-comments">
-                <view class="detail-comments__title">全部评论 ({{ detail.comments }})</view>
+                <view class="detail-comments__title">
+                    全部评论 ({{ detail.comments }})
+                </view>
                 <view v-for="(comment, index) in comments"
                       :key="index"
                       class="detail-comments__item">
-                    <image class="detail-comments__avatar" :src="comment.avatar" mode="aspectFill" />
+                    <UserCard :name="comment.name"
+                              :avatar="comment.avatar"
+                              :avatar-size="32"
+                              :badge-size="14" />
                     <view class="detail-comments__body">
-                        <view class="detail-comments__name">{{ comment.name }}</view>
                         <text class="detail-comments__text">{{ comment.text }}</text>
                         <text class="detail-comments__time">{{ comment.time }}</text>
                     </view>
@@ -74,13 +76,17 @@
         </scroll-view>
 
         <!-- 评论输入 -->
-        <view class="detail-input">
+        <view class="detail-input" :style="{ bottom: keyboardHeight + 'px' }">
             <input class="detail-input__field"
                    type="text"
                    placeholder="说点什么..."
                    v-model="commentText"
-                   @confirm="submitComment" />
-            <button class="detail-input__btn" @click="submitComment" :disabled="!commentText">
+                   @confirm="submitComment"
+                   @focus="onFocus"
+                   @blur="onBlur" />
+            <button class="detail-input__btn"
+                    @click="submitComment"
+                    :disabled="!commentText.trim()">
                 发送
             </button>
         </view>
@@ -88,19 +94,25 @@
 </template>
 
 <script setup>
-    import { ref} from 'vue'
-    import { onLoad, onHide, onUnload } from '@dcloudio/uni-app'
+    import { ref, onLoad } from 'vue'
+    import CustomNavbar from '@/components/common/CustomNavbar.vue'
+    import UserCard from '@/components/common/UserCard.vue'
+
     const commentText = ref('')
+    const keyboardHeight = ref(0)
+
     const detail = ref({
         id: 1,
         userName: '林小鹿',
+        userAge: 24,
         userAvatar: 'https://picsum.photos/100/100?random=10',
-        auth: { realName: true },
+        auth: { realName: true, education: true, work: false },
         time: '2小时前',
         content: '今天的阳光真好，在咖啡馆看了一下午的书📖 有小伙伴推荐好看的书吗？',
-        images: ['https://picsum.photos/400/300?random=20', 'https://picsum.photos/400/300?random=21'],
+        images: ['https://picsum.photos/600/400?random=20', 'https://picsum.photos/600/400?random=21'],
         location: '北京·三里屯',
         likes: 23,
+        liked: false,
         comments: 8,
         isQuality: true
     })
@@ -132,47 +144,47 @@
     }
 
     const handleLike = () => {
-        detail.value.likes++
-        uni.showToast({
-            title: '已点赞 ❤️',
-            icon: 'success'
-        })
+        if (detail.value.liked) {
+            detail.value.likes--
+            detail.value.liked = false
+        } else {
+            detail.value.likes++
+            detail.value.liked = true
+            uni.showToast({ title: '已点赞 ❤️', icon: 'success' })
+        }
     }
 
-    const handleComment = () => {
+    const focusComment = () => {
         // 聚焦到输入框
     }
 
     const handleShare = () => {
-        uni.showToast({
-            title: '分享功能开发中',
-            icon: 'none'
-        })
+        uni.showToast({ title: '点击右上角分享', icon: 'none' })
     }
 
     const handleReport = () => {
-        uni.navigateTo({
-            url: '/pages/common/report'
-        })
+        uni.navigateTo({ url: '/pages/common/report' })
+    }
+
+    const onFocus = (e) => {
+        keyboardHeight.value = e.detail.height || 260
+    }
+
+    const onBlur = () => {
+        keyboardHeight.value = 0
     }
 
     const submitComment = () => {
         if (!commentText.value.trim()) return
-
         comments.value.unshift({
             name: '我',
             avatar: 'https://picsum.photos/100/100?random=30',
             text: commentText.value,
             time: '刚刚'
         })
-
         detail.value.comments++
         commentText.value = ''
-
-        uni.showToast({
-            title: '评论成功',
-            icon: 'success'
-        })
+        uni.showToast({ title: '评论成功', icon: 'success' })
     }
 
     onLoad((options) => {
@@ -181,243 +193,201 @@
 </script>
 
 <style lang="scss" scoped>
+    @import '@/styles/variables.scss';
+
     .detail-page {
         min-height: 100vh;
-        background-color: #FAFAFA;
-    }
-
-    .detail-navbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 12px 24px;
-        background-color: #FFFFFF;
-        border-bottom: 1px solid #E5E5E5;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-
-    .detail-navbar__back {
-        font-size: 28px;
-        color: #333333;
-        cursor: pointer;
-    }
-
-    .detail-navbar__title {
-        font-size: 18px;
-        font-weight: 500;
-        color: #333333;
-    }
-
-    .detail-navbar__more {
-        font-size: 20px;
-        color: #666666;
+        background-color: $bg-page;
     }
 
     .detail-content {
         height: calc(100vh - 120px);
-        padding: 0 24px;
+        padding: 0 $page-padding-x;
     }
 
     .detail-user {
         display: flex;
         align-items: center;
-        padding: 16px 0;
+        justify-content: space-between;
+        padding: $spacing-md 0;
     }
 
-    .detail-user__avatar {
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        flex-shrink: 0;
-        background-color: #FAFAFA;
-    }
-
-    .detail-user__info {
-        flex: 1;
-        margin-left: 12px;
-    }
-
-    .detail-user__name {
+    .detail-user__right {
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 16px;
-        font-weight: 500;
-        color: #333333;
-    }
-
-    .detail-user__badge {
-        font-size: 11px;
-        font-weight: 400;
-        color: #A8B89A;
-        background-color: #F2F5EF;
-        padding: 1px 8px;
-        border-radius: 10px;
+        gap: $spacing-sm;
+        flex-shrink: 0;
     }
 
     .detail-user__time {
-        font-size: 12px;
-        color: #999999;
+        font-size: $font-size-xs;
+        color: $text-helper;
     }
 
     .detail-user__quality {
         padding: 2px 12px;
-        font-size: 11px;
-        font-weight: 500;
+        font-size: $font-size-xs;
+        font-weight: $font-weight-medium;
         color: #FFFFFF;
-        background-color: #A8B89A;
-        border-radius: 10px;
+        background-color: $primary-color;
+        border-radius: 12px;
     }
 
     .detail-images {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 4px;
-        margin-bottom: 12px;
+        gap: $spacing-xs;
+        margin-bottom: $spacing-sm;
+
+        &--single {
+            grid-template-columns: 1fr;
+        }
     }
 
     .detail-images__item {
         width: 100%;
-        height: 200px;
-        border-radius: 8px;
-        background-color: #FAFAFA;
+        height: 180px;
+        border-radius: $radius-sm;
+        background-color: $bg-page;
+        cursor: pointer;
+
+        &:active {
+            opacity: 0.9;
+        }
     }
 
-    .detail-images__item--single {
-        grid-column: 1 / -1;
-        height: 300px;
+    .detail-images--single .detail-images__item {
+        height: 280px;
     }
 
     .detail-text {
-        padding: 8px 0 16px;
+        padding: $spacing-sm 0 $spacing-md;
     }
 
     .detail-text__content {
-        font-size: 15px;
-        color: #333333;
+        font-size: $font-size-sm;
+        color: $text-primary;
         line-height: 1.8;
     }
 
     .detail-text__location {
         display: block;
-        font-size: 13px;
-        color: #999999;
-        margin-top: 8px;
+        font-size: $font-size-xs;
+        color: $text-helper;
+        margin-top: $spacing-sm;
+
+        .icon {
+            font-size: 12px;
+        }
     }
 
     .detail-actions {
         display: flex;
         align-items: center;
-        padding: 12px 0;
-        border-top: 1px solid #E5E5E5;
-        border-bottom: 1px solid #E5E5E5;
-        gap: 32px;
+        padding: $spacing-sm 0;
+        border-top: 1px solid $border-light;
+        border-bottom: 1px solid $border-light;
+        gap: $spacing-xl;
     }
 
     .detail-actions__item {
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: $spacing-xs;
         cursor: pointer;
-    }
 
-    .detail-actions__item:active {
-        opacity: 0.6;
+        &:active {
+            opacity: 0.6;
+        }
     }
 
     .detail-actions__icon {
-        font-size: 18px;
+        font-size: 20px;
+        color: $text-secondary;
     }
 
     .detail-actions__count {
-        font-size: 13px;
-        color: #666666;
+        font-size: $font-size-sm;
+        color: $text-secondary;
     }
 
     .detail-comments {
-        padding: 16px 0;
+        padding: $spacing-md 0;
     }
 
     .detail-comments__title {
-        font-size: 16px;
-        font-weight: 500;
-        color: #333333;
-        margin-bottom: 16px;
+        font-size: $font-size-md;
+        font-weight: $font-weight-medium;
+        color: $text-primary;
+        margin-bottom: $spacing-md;
     }
 
     .detail-comments__item {
         display: flex;
-        gap: 12px;
-        padding: 12px 0;
-        border-bottom: 1px solid #F5F5F5;
-    }
+        align-items: flex-start;
+        gap: $spacing-sm;
+        padding: $spacing-sm 0;
+        border-bottom: 1px solid $border-light;
 
-    .detail-comments__avatar {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        flex-shrink: 0;
-        background-color: #FAFAFA;
+        &:last-child {
+            border-bottom: none;
+        }
     }
 
     .detail-comments__body {
         flex: 1;
     }
 
-    .detail-comments__name {
-        font-size: 13px;
-        font-weight: 500;
-        color: #333333;
-    }
-
     .detail-comments__text {
         display: block;
-        font-size: 14px;
-        color: #666666;
-        margin: 2px 0;
+        font-size: $font-size-sm;
+        color: $text-secondary;
     }
 
     .detail-comments__time {
-        font-size: 11px;
-        color: #999999;
+        font-size: $font-size-xs;
+        color: $text-helper;
     }
 
     .detail-input {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 12px 24px;
-        background-color: #FFFFFF;
-        border-top: 1px solid #E5E5E5;
+        gap: $spacing-sm;
+        padding: $spacing-sm $page-padding-x;
+        background-color: $bg-card;
+        border-top: 1px solid $border-light;
         position: fixed;
         bottom: 0;
         left: 0;
         right: 0;
+        transition: bottom $duration-fast ease;
     }
 
     .detail-input__field {
         flex: 1;
         height: 36px;
-        padding: 0 14px;
-        background-color: #F5F5F5;
+        padding: 0 $spacing-md;
+        background-color: $bg-page;
         border-radius: 18px;
-        font-size: 14px;
+        font-size: $font-size-sm;
     }
 
     .detail-input__btn {
         height: 36px;
-        padding: 0 20px;
-        background-color: #A8B89A;
+        padding: 0 $spacing-lg;
+        background-color: $primary-color;
         color: #FFFFFF;
         border-radius: 18px;
-        font-size: 14px;
+        font-size: $font-size-sm;
         border: none;
-    }
 
-    .detail-input__btn:disabled {
-        background-color: #E5E5E5;
-        color: #999999;
+        &:disabled {
+            background-color: $disabled-bg;
+            color: $text-helper;
+        }
+
+        &:active:not(:disabled) {
+            transform: scale(0.95);
+        }
     }
 </style>

@@ -2,7 +2,11 @@
 // 样式统一入口
 // ============================================================
 
+// 注意：在 uni-app 中，variables 和 mixins 需要通过 @import 导入
+// 因为小程序不支持 @use，统一使用 @import
+
 @import './variables.scss';
 @import './mixins.scss';
 @import './reset.scss';
 @import './common.scss';
+@import './icons.scss';

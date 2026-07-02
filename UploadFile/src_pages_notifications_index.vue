@@ -1,9 +1,7 @@
 <template>
     <view class="notify-page">
         <!-- 导航栏 -->
-        <view class="notify-navbar">
-            <text class="notify-navbar__title">通知</text>
-        </view>
+        <CustomNavbar title="通知" />
 
         <!-- 通知列表 -->
         <scroll-view class="notify-list" scroll-y>
@@ -27,7 +25,7 @@
 
             <!-- 空状态 -->
             <view v-if="notifyList.length === 0" class="notify-empty">
-                <text class="notify-empty__icon">🔔</text>
+                <image class="notify-empty__image" src="/static/images/empty-notify.png" mode="aspectFit" />
                 <text class="notify-empty__title">暂无通知</text>
                 <text class="notify-empty__desc">有动态时我们会通知你</text>
             </view>
@@ -37,8 +35,8 @@
 
 <script setup>
     import { ref } from 'vue'
+    import CustomNavbar from '@/components/common/CustomNavbar.vue'
 
-    // ===== 假数据 =====
     const notifyList = ref([
         {
             id: 1,
@@ -82,49 +80,43 @@
         }
     ])
 
-    // ===== 操作方法 =====
     const handleRead = (index) => {
         notifyList.value[index].isRead = true
     }
 </script>
 
 <style lang="scss" scoped>
+    @import '@/styles/variables.scss';
+
     .notify-page {
         min-height: 100vh;
-        background-color: #FAFAFA;
-    }
-
-    .notify-navbar {
-        padding: 12px 24px;
-        background-color: #FFFFFF;
-        border-bottom: 1px solid #E5E5E5;
-    }
-
-    .notify-navbar__title {
-        font-size: 20px;
-        font-weight: 500;
-        color: #333333;
+        background-color: $bg-page;
     }
 
     .notify-list {
-        padding: 0 24px;
+        padding: 0 $page-padding-x;
         height: calc(100vh - 76px);
     }
 
     .notify-item {
         display: flex;
         align-items: flex-start;
-        padding: 16px 0;
-        border-bottom: 1px solid #E5E5E5;
-        background-color: #FFFFFF;
+        padding: $spacing-md 0;
+        border-bottom: 1px solid $border-light;
         cursor: pointer;
+        transition: background-color $duration-fast ease;
+
+        &:active {
+            opacity: 0.7;
+        }
     }
 
     .notify-item--unread {
-        background-color: #F2F5EF;
-        margin: 0 -24px;
-        padding-left: 24px;
-        padding-right: 24px;
+        background-color: $primary-light-bg;
+        margin: 0 -$page-padding-x;
+        padding-left: $page-padding-x;
+        padding-right: $page-padding-x;
+        border-radius: $radius-sm;
     }
 
     .notify-item:last-child {
@@ -135,12 +127,12 @@
         width: 44px;
         height: 44px;
         border-radius: 50%;
-        background-color: #FAFAFA;
+        background-color: $bg-page;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        margin-right: 12px;
+        margin-right: $spacing-sm;
     }
 
     .notify-item__icon-text {
@@ -155,30 +147,30 @@
     .notify-item__header {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: $spacing-xs;
     }
 
     .notify-item__title {
-        font-size: 16px;
-        font-weight: 500;
-        color: #333333;
+        font-size: $font-size-md;
+        font-weight: $font-weight-medium;
+        color: $text-primary;
     }
 
     .notify-item__dot {
-        color: #BF8B8B;
+        color: $color-warning;
         font-size: 10px;
     }
 
     .notify-item__desc {
         display: block;
-        font-size: 14px;
-        color: #666666;
+        font-size: $font-size-sm;
+        color: $text-secondary;
         margin: 2px 0 4px;
     }
 
     .notify-item__time {
-        font-size: 12px;
-        color: #999999;
+        font-size: $font-size-xs;
+        color: $text-helper;
     }
 
     .notify-empty {
@@ -189,19 +181,21 @@
         padding-top: 80px;
     }
 
-    .notify-empty__icon {
-        font-size: 64px;
-        margin-bottom: 16px;
+    .notify-empty__image {
+        width: 160px;
+        height: 120px;
+        margin-bottom: $spacing-md;
     }
 
     .notify-empty__title {
-        font-size: 18px;
-        color: #333333;
-        margin-bottom: 8px;
+        font-size: $font-size-lg;
+        font-weight: $font-weight-medium;
+        color: $text-primary;
+        margin-bottom: $spacing-xs;
     }
 
     .notify-empty__desc {
-        font-size: 14px;
-        color: #999999;
+        font-size: $font-size-sm;
+        color: $text-helper;
     }
 </style>
