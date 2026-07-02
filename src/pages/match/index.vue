@@ -1,6 +1,6 @@
 <template>
     <view class="match-page">
-        <!-- 顶部导航栏：优化标题视觉 -->
+        <!-- 顶部导航栏：固定不滚动 -->
         <view class="match-navbar">
             <view class="match-navbar__title">匹配</view>
             <view class="match-navbar__right">
@@ -13,7 +13,7 @@
             </view>
         </view>
 
-        <!-- 快速筛选栏 -->
+        <!-- 快速筛选栏：固定不滚动 -->
         <view class="match-filter">
             <scroll-view scroll-x class="match-filter__scroll" show-scrollbar="false">
                 <view class="match-filter__tags">
@@ -28,7 +28,7 @@
             </scroll-view>
         </view>
 
-        <!-- 匹配主内容区 -->
+        <!-- 匹配主内容区：仅此处可滚动 -->
         <view class="match-main" v-if="currentMatchUser">
             <!-- 可滚动内容区 -->
             <scroll-view scroll-y class="match-scroll" show-scrollbar="false">
@@ -45,31 +45,32 @@
 
                 <!-- 资料内容区 -->
                 <view class="match-content">
-                    <!-- 基础信息 + 认证勋章 -->
+                    <!-- 基础信息：昵称+性别+官方认证徽章 同行 -->
                     <view class="match-base">
                         <view class="match-base__header">
                             <text class="match-base__name">{{ currentMatchUser.name }}</text>
-                            <text class="match-base__gender icon icon-female"></text>
-                            <view v-if="currentMatchUser.isQuality" class="quality-tag">优质用户</view>
+                            <!-- 性别图标改用通用字符，避免图标库缺失 -->
+                            <text class="match-base__gender">♀</text>
+                            <!-- 官方认证小徽章 -->
+                            <view class="header-auth-badges">
+                                <view class="header-auth-badge" v-if="currentMatchUser.auth.realName">
+                                    <text class="icon icon-check"></text>实名
+                                </view>
+                                <view class="header-auth-badge" v-if="currentMatchUser.auth.education">
+                                    <text class="icon icon-check"></text>学历
+                                </view>
+                                <view class="header-auth-badge header-auth-badge--work" v-if="currentMatchUser.auth.work">
+                                    <text class="icon icon-check"></text>工作
+                                </view>
+                            </view>
                         </view>
 
                         <view class="match-base__meta">
                             {{ currentMatchUser.age }}岁 · {{ currentMatchUser.height }}cm · {{ currentMatchUser.education }} · {{ currentMatchUser.occupation }}
                         </view>
 
-                        <!-- 认证+勋章整合行 -->
+                        <!-- 趣味勋章：左对齐，消除左侧留白 -->
                         <view class="match-base__badges">
-                            <view class="auth-badges">
-                                <view class="auth-badge auth-badge--real" v-if="currentMatchUser.auth.realName">
-                                    <text class="icon icon-check"></text>实名
-                                </view>
-                                <view class="auth-badge auth-badge--edu" v-if="currentMatchUser.auth.education">
-                                    <text class="icon icon-check"></text>学历
-                                </view>
-                                <view class="auth-badge auth-badge--work" v-if="currentMatchUser.auth.work">
-                                    <text class="icon icon-check"></text>工作
-                                </view>
-                            </view>
                             <view class="fun-medals">
                                 <view v-for="(medal, idx) in currentMatchUser.showMedals"
                                       :key="idx"
@@ -215,7 +216,7 @@
                 </view>
             </scroll-view>
 
-            <!-- 底部固定三按钮：左右圆形化，中间加宽 -->
+            <!-- 底部固定三按钮：永久悬浮不被遮挡 -->
             <view class="match-actions">
                 <button class="match-actions__btn match-actions__btn--skip" @click="handleSkip">
                     <text class="icon icon-close"></text>
@@ -346,7 +347,6 @@
             ipLocation: '北京市',
             hasCompletedTest: true,
             bio: '慢热型，希望遇到能一起吃很多饭、聊很多天的人',
-            isQuality: true,
             matchSlogan: '都爱周末探店的你们，大概率能吃到一起、聊到一块',
             weekendTags: ['探店觅食', '逛展看剧', '居家观影'],
             hobbyTags: ['摄影', '旅行', '咖啡', '阅读'],
@@ -397,7 +397,6 @@
             ipLocation: '上海市',
             hasCompletedTest: true,
             bio: '理性与浪漫各一半，喜欢有质感的生活',
-            isQuality: true,
             matchSlogan: '一个规划行程一个负责惊喜，你们的相处节奏会很合拍',
             weekendTags: ['健身运动', '咖啡探店', '城市漫步'],
             hobbyTags: ['瑜伽', '阅读', '音乐', '理财'],
@@ -580,15 +579,21 @@
     @import '@/styles/variables.scss';
     @import '@/styles/mixins.scss';
 
+    /* 核心修复：外层容器禁止滚动，高度占满全屏 */
     .match-page {
-        height: 100vh;
+        width: 100%;
+        height: 100%;
         display: flex;
         flex-direction: column;
         background-color: $bg-page;
+        overflow: hidden; /* 彻底禁止外层滚动 */
+        box-sizing: border-box;
     }
 
-    // ----- 顶部导航栏：标题优化 -----
+    // ----- 顶部导航栏：固定不收缩 -----
     .match-navbar {
+        width: 100%;
+        flex-shrink: 0; /* 禁止被压缩 */
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -596,7 +601,7 @@
         background-color: rgba(255, 255, 255, 0.85);
         @include glass;
         border-bottom: 1px solid rgba($border-light, 0.5);
-        flex-shrink: 0;
+        box-sizing: border-box;
 
         &__title {
             font-size: 17px;
@@ -617,16 +622,16 @@
             gap: 2px;
         }
 
+        &__quota-text {
+            font-size: 12px;
+            color: $text-helper;
+        }
+
         &__quota-num {
             font-size: 18px;
             font-weight: $font-weight-medium;
             color: $primary-color;
             line-height: 1;
-        }
-
-        &__quota-text {
-            font-size: 11px;
-            color: $text-helper;
         }
 
         &__icon {
@@ -640,14 +645,16 @@
         }
     }
 
-    // ----- 筛选栏 -----
+    // ----- 筛选栏：固定不收缩 -----
     .match-filter {
+        width: 100%;
+        flex-shrink: 0; /* 禁止被压缩 */
         display: flex;
         align-items: center;
         padding: $spacing-sm $page-padding-x;
         background-color: $bg-card;
         border-bottom: 1px solid $border-light;
-        flex-shrink: 0;
+        box-sizing: border-box;
 
         &__scroll {
             flex: 1;
@@ -677,25 +684,25 @@
         }
     }
 
-    // ----- 主内容区 -----
+    // ----- 主内容区：占满剩余空间，内部滚动 -----
     .match-main {
-        flex: 1;
+        width: 100%;
+        flex: 1; /* 占满剩余高度 */
         position: relative;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
+        overflow: hidden; /* 超出部分隐藏，仅内部滚动 */
+        min-height: 0; /* 修复flex子元素滚动失效问题 */
     }
 
     .match-scroll {
-        flex: 1;
-        height: 0;
+        width: 100%;
+        height: 100%;
     }
 
     // ----- 纯净头图 -----
     .match-hero {
         position: relative;
         width: 100%;
-        height: 380px;
+        height: 220px;
         flex-shrink: 0;
         cursor: pointer;
 
@@ -770,19 +777,23 @@
         &__header {
             display: flex;
             align-items: center;
-            gap: $spacing-xs;
+            gap: 8px;
             margin-bottom: $spacing-xs;
+            flex-wrap: nowrap;
         }
 
         &__name {
             font-size: 22px;
             font-weight: $font-weight-medium;
             color: $text-primary;
+            flex-shrink: 0;
         }
 
         &__gender {
-            font-size: 18px;
+            font-size: 20px;
             color: #FF6B81;
+            flex-shrink: 0;
+            line-height: 1;
         }
 
         &__meta {
@@ -790,13 +801,12 @@
             color: $text-secondary;
             margin-bottom: $spacing-sm;
         }
-
+        /* 趣味勋章：左对齐 */
         &__badges {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-start; /* 左对齐消除留白 */
             margin-bottom: $spacing-sm;
-            gap: 12px;
         }
 
         &__location {
@@ -811,59 +821,45 @@
         }
     }
 
-    // 官方认证徽章
-    .auth-badges {
+    // 昵称行官方认证小徽章
+    .header-auth-badges {
         display: flex;
+        align-items: center;
         gap: 6px;
         flex-shrink: 0;
-        flex-wrap: nowrap;
     }
 
-    .auth-badge {
+    .header-auth-badge {
         display: inline-flex;
         align-items: center;
         gap: 2px;
-        padding: 3px 8px;
-        font-size: 11px;
+        padding: 2px 6px;
+        font-size: 10px;
         color: #FFFFFF;
-        border-radius: 6px;
+        border-radius: 4px;
         white-space: nowrap;
-        flex-shrink: 0;
 
         .icon {
-            font-size: 10px;
+            font-size: 9px;
         }
 
-        &--real {
-            background: linear-gradient(90deg, #2ED573, #1EBE60);
-        }
+        background: linear-gradient(90deg, #2ED573, #1EBE60);
 
-        &--edu {
+        &:nth-child(2) {
             background: linear-gradient(90deg, #4FACFE, #0099FF);
         }
 
         &--work {
-            background: linear-gradient(90deg, #FFA726, #FB8C00);
+            background: linear-gradient(90deg, #FFA726, #FB8C00) !important;
         }
     }
 
-    // 趣味勋章
+    // 趣味勋章：左对齐
     .fun-medals {
         display: flex;
         gap: 6px;
         flex-wrap: wrap;
-        justify-content: flex-end;
-        flex-shrink: 1;
-    }
-
-    // 优质标签
-    .quality-tag {
-        padding: 2px 8px;
-        font-size: 10px;
-        font-weight: $font-weight-medium;
-        color: #FFFFFF;
-        background: linear-gradient(90deg, $primary-color, #9DB48E);
-        border-radius: 10px;
+        justify-content: flex-start; /* 左对齐 */
     }
 
     // 趣味勋章标签
@@ -1130,12 +1126,12 @@
         flex-wrap: wrap;
     }
 
-    // ----- 底部信息栏：IP+举报拉黑 -----
+    // ----- 底部信息栏：预留足够高度，不被按钮遮挡 -----
     .match-footer {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 16px $page-padding-x calc(16px + 70px);
+        padding: 16px $page-padding-x calc(90px + env(safe-area-inset-bottom));
         font-size: 11px;
         color: $text-helper;
         background-color: $bg-card;
@@ -1165,12 +1161,13 @@
         }
     }
 
-    // ----- 底部操作栏：左右圆形，中间加宽 -----
+    // ----- 底部操作栏：绝对固定在底部 -----
     .match-actions {
         position: absolute;
         bottom: 0;
         left: 0;
         right: 0;
+        z-index: 99; /* 提高层级确保不被遮挡 */
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -1178,7 +1175,6 @@
         background-color: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(10px);
         border-top: 1px solid $border-light;
-        z-index: 10;
 
         &__btn {
             display: flex;
