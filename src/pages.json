@@ -112,7 +112,22 @@
         "navigationBarTitleText": "工作认证",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/user/profile",
+      "style": {
+        "navigationBarTitleText": "Ta的主页",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/user/medalDetail",
+      "style": {
+        "navigationBarTitleText": "勋章详情",
+        "navigationStyle": "custom"
+      }
     }
+
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",

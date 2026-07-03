@@ -702,8 +702,7 @@
     .match-hero {
         position: relative;
         width: 100%;
-        height: 220px;
-        flex-shrink: 0;
+        aspect-ratio: 16 / 9;
         cursor: pointer;
 
         &__image {
@@ -714,8 +713,8 @@
 
         &__tip {
             position: absolute;
-            bottom: 16px;
-            right: 16px;
+            bottom: 10px;
+            right: 8px;
             padding: 4px 10px;
             background-color: rgba(0, 0, 0, 0.5);
             color: #FFFFFF;
@@ -735,7 +734,6 @@
     .match-content {
         background-color: $bg-page;
         border-radius: 16px 16px 0 0;
-        margin-top: -16px;
         position: relative;
         z-index: 2;
         padding-bottom: 0;
