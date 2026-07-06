@@ -1,303 +1,213 @@
 <template>
   <view class="profile-page">
-    <!-- 导航栏 -->
-    <view class="profile-navbar">
-      <text class="profile-navbar__title">我的</text>
-      <view class="profile-navbar__right">
-        <text class="profile-navbar__icon icon icon-settings" @click="goToSettings" />
-      </view>
-    </view>
-
-    <!-- 个人信息 -->
+    <!-- 个人信息头部 -->
     <view class="profile-header">
-      <view class="profile-header__avatar-wrapper">
-        <image 
-          class="profile-header__avatar"
-          src="https://picsum.photos/200/200?random=30"
-          mode="aspectFill" 
-        />
-        <view class="profile-header__edit" @click="handleEditAvatar">
-          <text class="icon icon-camera" />
+      <view class="profile-header__main">
+        <view class="profile-header__avatar-wrap">
+          <image 
+            class="profile-header__avatar"
+            src="https://picsum.photos/200/200?random=30"
+            mode="aspectFill" 
+          />
+          <!-- 认证等级对勾，和他人页规则统一 -->
+          <view class="avatar-auth-icon" :class="'auth-level-' + getAuthLevel(authStatus)" v-if="authStatus.realName">
+            <text class="icon icon-check"></text>
+          </view>
+        </view>
+
+        <view class="profile-header__info">
+          <view class="profile-header__name-row">
+            <text class="profile-header__name">小鹿同学</text>
+            <text class="profile-header__edit" @click="goToMyProfile">
+              编辑资料 <text class="icon icon-arrow-right"></text>
+            </text>
+          </view>
+          <!-- 平台ID -->
+          <text class="profile-header__id">ID：{{ userId }}</text>
         </view>
       </view>
 
-      <text class="profile-header__name">小鹿同学</text>
-
-      <!-- 认证徽章 -->
-      <view class="profile-header__badges">
-        <view 
-          class="profile-header__badge" 
-          :class="{ 'profile-header__badge--done': authStatus.realName }"
-          @click="goToRealNameAuth"
-        >
-          <AuthBadge type="realname" :size="18" />
-          <text>{{ authStatus.realName ? '已实名' : '实名认证' }}</text>
+      <!-- 认证状态区：明确文字标注，三列横向排列 -->
+      <view class="auth-status-card">
+        <view class="auth-status__item" :class="{ 'is-active': authStatus.realName }" @click="goToRealNameAuth">
+          <text class="auth-status__icon icon icon-id-card"></text>
+          <view class="auth-status__text">
+            <text class="auth-status__label">实名认证</text>
+            <text class="auth-status__value">{{ authStatus.realName ? '已认证' : '去认证' }}</text>
+          </view>
         </view>
-        <view 
-          class="profile-header__badge"
-          :class="{ 'profile-header__badge--done': authStatus.education }"
-          @click="goToEducationAuth"
-        >
-          <AuthBadge type="education" :size="18" />
-          <text>{{ authStatus.education ? '学历认证' : '学历认证' }}</text>
+        <view class="auth-status__item" :class="{ 'is-active': authStatus.education }" @click="goToEducationAuth">
+          <text class="auth-status__icon icon icon-graduation"></text>
+          <view class="auth-status__text">
+            <text class="auth-status__label">学历认证</text>
+            <text class="auth-status__value">{{ authStatus.education ? '已认证' : '去认证' }}</text>
+          </view>
         </view>
-        <view 
-          class="profile-header__badge"
-          :class="{ 'profile-header__badge--done': authStatus.work }"
-          @click="goToWorkAuth"
-        >
-          <AuthBadge type="work" :size="18" />
-          <text>{{ authStatus.work ? '工作认证' : '工作认证' }}</text>
+        <view class="auth-status__item" :class="{ 'is-active': authStatus.work }" @click="goToWorkAuth">
+          <text class="auth-status__icon icon icon-briefcase"></text>
+          <view class="auth-status__text">
+            <text class="auth-status__label">工作认证</text>
+            <text class="auth-status__value">{{ authStatus.work ? '已认证' : '去认证' }}</text>
+          </view>
         </view>
       </view>
 
       <!-- 资料完善度 -->
-      <view class="profile-header__progress">
-        <view class="profile-header__progress-bar">
-          <view class="profile-header__progress-fill" :style="{ width: profileProgress + '%' }"></view>
+      <view class="profile-progress" @click="goToMyProfile">
+        <view class="profile-progress__bar">
+          <view class="profile-progress__fill" :style="{ width: profileProgress + '%' }"></view>
         </view>
-        <text class="profile-header__progress-text">资料完善度 {{ profileProgress }}%</text>
-      </view>
-
-      <!-- 快捷认证入口 -->
-      <view class="profile-header__auth-hint" v-if="!authStatus.education || !authStatus.work">
-        <text class="profile-header__auth-hint-text">
-          💡 完成双认证，匹配优先级提升 50%
-        </text>
-        <view class="profile-header__auth-hint-actions">
-          <text v-if="!authStatus.education" class="profile-header__auth-hint-btn" @click="goToEducationAuth">
-            🎓 学历认证
-          </text>
-          <text v-if="!authStatus.work" class="profile-header__auth-hint-btn" @click="goToWorkAuth">
-            💼 工作认证
-          </text>
-        </view>
+        <text class="profile-progress__text">资料完善度 {{ profileProgress }}%，完善后匹配更精准</text>
       </view>
     </view>
 
-    <!-- 签到 + 权益概览 -->
-    <view class="profile-stats">
-      <view class="profile-stats__item" @click="goToCheckin">
-        <text class="profile-stats__icon">📅</text>
-        <view class="profile-stats__info">
-          <text class="profile-stats__label">连续签到</text>
-          <text class="profile-stats__value">{{ checkinDays }}天</text>
-        </view>
-        <text class="profile-stats__arrow">›</text>
+    <!-- 核心数据统计卡 -->
+    <view class="stats-card">
+      <view class="stats-card__item" @click="goToLikeList('send')">
+        <text class="stats-card__num">{{ likeSendCount }}</text>
+        <text class="stats-card__label">我喜欢的</text>
       </view>
-      <view class="profile-stats__divider"></view>
-      <view class="profile-stats__item" @click="goToEquity">
-        <text class="profile-stats__icon">🎁</text>
-        <view class="profile-stats__info">
-          <text class="profile-stats__label">今日申请</text>
-          <text class="profile-stats__value">{{ applyCount }}次</text>
-        </view>
-        <text class="profile-stats__arrow">›</text>
+      <view class="stats-card__divider"></view>
+      <view class="stats-card__item" @click="goToLikeList('receive')">
+        <text class="stats-card__num">{{ likeReceiveCount }}</text>
+        <text class="stats-card__label">喜欢我的</text>
       </view>
-      <view class="profile-stats__divider"></view>
-      <view class="profile-stats__item" @click="goToEquity">
-        <text class="profile-stats__icon">📢</text>
-        <view class="profile-stats__info">
-          <text class="profile-stats__label">曝光卡</text>
-          <text class="profile-stats__value">{{ exposureCards }}张</text>
-        </view>
-        <text class="profile-stats__arrow">›</text>
+      <view class="stats-card__divider"></view>
+      <view class="stats-card__item" @click="goToVisitorList">
+        <text class="stats-card__num">{{ visitorCount }}</text>
+        <text class="stats-card__label">最近来访</text>
       </view>
     </view>
 
-    <!-- 基础资料 -->
-    <view class="profile-card">
-      <view class="profile-card__title">基础资料</view>
-      <view class="profile-card__grid">
-        <view class="profile-card__item">
-          <text class="profile-card__label">性别</text>
-          <text class="profile-card__value">女</text>
+    <!-- 我的勋章入口 -->
+    <view class="entry-card">
+      <view class="entry-card__item" @click="goToMedalWall">
+        <view class="entry-card__icon entry-card__icon--purple">
+          <text class="icon icon-medal"></text>
         </view>
-        <view class="profile-card__item">
-          <text class="profile-card__label">年龄</text>
-          <text class="profile-card__value">24岁</text>
+        <view class="entry-card__info">
+          <text class="entry-card__title">我的勋章</text>
+          <text class="entry-card__sub">已获得 {{ medalCount }} 枚荣誉勋章</text>
         </view>
-        <view class="profile-card__item">
-          <text class="profile-card__label">城市</text>
-          <text class="profile-card__value">北京</text>
-        </view>
-        <view class="profile-card__item">
-          <text class="profile-card__label">身高</text>
-          <text class="profile-card__value">165cm</text>
-        </view>
-        <view class="profile-card__item">
-          <text class="profile-card__label">学历</text>
-          <text class="profile-card__value">本科</text>
-        </view>
-        <view class="profile-card__item">
-          <text class="profile-card__label">情感需求</text>
-          <text class="profile-card__value">恋爱</text>
-        </view>
-      </view>
-      <view class="profile-card__edit" @click="goToEditProfile">
-        <text class="icon icon-edit" /> 编辑资料
+        <text class="entry-card__arrow icon icon-arrow-right"></text>
       </view>
     </view>
 
-    <!-- 生活标签 -->
-    <view class="profile-card">
-      <view class="profile-card__title">生活标签</view>
-      <view class="profile-card__tags">
-        <text class="profile-card__tag">📷 摄影</text>
-        <text class="profile-card__tag">✈️ 旅行</text>
-        <text class="profile-card__tag">☕ 咖啡</text>
-        <text class="profile-card__tag">📚 阅读</text>
-        <text class="profile-card__tag">🎵 音乐</text>
+    <!-- 工具菜单 -->
+    <view class="menu-card">
+      <view class="menu-card__item" @click="goToEquity">
+        <text class="menu-card__icon icon icon-gift" />
+        <text class="menu-card__label">权益中心</text>
+        <text class="menu-card__arrow icon icon-arrow-right"></text>
+      </view>
+      <view class="menu-card__item" @click="goToPrivacy">
+        <text class="menu-card__icon icon icon-lock" />
+        <text class="menu-card__label">隐私设置</text>
+        <text class="menu-card__arrow icon icon-arrow-right"></text>
+      </view>
+      <view class="menu-card__item" @click="goToSafetyCenter">
+        <text class="menu-card__icon icon icon-shield" style="color: #FF9800;" />
+        <text class="menu-card__label">安全中心</text>
+        <text class="menu-card__arrow icon icon-arrow-right"></text>
+      </view>
+      <view class="menu-card__item" @click="goToAntiFraud">
+        <text class="menu-card__icon icon icon-flag" />
+        <text class="menu-card__label">反诈专区</text>
+        <text class="menu-card__arrow icon icon-arrow-right"></text>
+      </view>
+      <view class="menu-card__item" @click="handleFeedback">
+        <text class="menu-card__icon icon icon-comment" />
+        <text class="menu-card__label">意见反馈</text>
+        <text class="menu-card__arrow icon icon-arrow-right"></text>
+      </view>
+      <view class="menu-card__item" @click="goToSettings">
+        <text class="menu-card__icon icon icon-settings" />
+        <text class="menu-card__label">设置</text>
+        <text class="menu-card__arrow icon icon-arrow-right"></text>
       </view>
     </view>
 
-    <!-- 我的动态 -->
-    <view class="profile-card">
-      <view class="profile-card__header">
-        <text class="profile-card__title">我的动态</text>
-        <text class="profile-card__more" @click="goToMyDynamics">查看全部 ›</text>
-      </view>
-      <view class="profile-dynamics">
-        <view 
-          v-for="(item, index) in myDynamics" 
-          :key="item.id"
-          class="profile-dynamics__item"
-          @click="goToDynamicDetail(item.id)"
-        >
-          <image class="profile-dynamics__image" :src="item.image" mode="aspectFill" />
-          <view class="profile-dynamics__overlay">
-            <text class="profile-dynamics__count">❤️ {{ item.likes }}</text>
-          </view>
-        </view>
-        <view class="profile-dynamics__item profile-dynamics__add" @click="goToPublish">
-          <text class="profile-dynamics__add-icon">+</text>
-          <text class="profile-dynamics__add-text">发布动态</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 底部菜单 -->
-    <view class="profile-menu">
-      <view class="profile-menu__item" @click="goToEquity">
-        <text class="profile-menu__icon icon icon-gift" />
-        <text class="profile-menu__label">权益中心</text>
-        <text class="profile-menu__arrow">›</text>
-      </view>
-      <view class="profile-menu__item" @click="goToPrivacy">
-        <text class="profile-menu__icon icon icon-lock" />
-        <text class="profile-menu__label">隐私设置</text>
-        <text class="profile-menu__arrow">›</text>
-      </view>
-      <view class="profile-menu__item" @click="goToSafetyCenter">
-        <text class="profile-menu__icon icon icon-shield" style="color: $color-warning;" />
-        <text class="profile-menu__label">安全中心</text>
-        <text class="profile-menu__arrow">›</text>
-      </view>
-      <view class="profile-menu__item" @click="goToAntiFraud">
-        <text class="profile-menu__icon icon icon-flag" />
-        <text class="profile-menu__label">反诈专区</text>
-        <text class="profile-menu__arrow">›</text>
-      </view>
-      <view class="profile-menu__item" @click="handleFeedback">
-        <text class="profile-menu__icon icon icon-comment" />
-        <text class="profile-menu__label">意见反馈</text>
-        <text class="profile-menu__arrow">›</text>
-      </view>
-      <view class="profile-menu__item" @click="goToSettings">
-        <text class="profile-menu__icon icon icon-settings" />
-        <text class="profile-menu__label">设置</text>
-        <text class="profile-menu__arrow">›</text>
-      </view>
-    </view>
+    <!-- 底部占位 -->
+    <view class="page-bottom-placeholder"></view>
   </view>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import AuthBadge from '@/components/common/AuthBadge.vue'
 
-// ===== 状态 =====
+// ===== 状态数据 =====
+const userId = ref('10086520') // 平台唯一ID
+
 const authStatus = ref({
   realName: true,
   education: false,
   work: false
 })
-
 const profileProgress = ref(75)
-const checkinDays = ref(7)
-const applyCount = ref(10)
-const exposureCards = ref(3)
 
-const myDynamics = ref([
-  { id: 1, image: 'https://picsum.photos/200/200?random=40', likes: 23 },
-  { id: 2, image: 'https://picsum.photos/200/200?random=41', likes: 45 },
-  { id: 3, image: 'https://picsum.photos/200/200?random=42', likes: 12 },
-  { id: 4, image: 'https://picsum.photos/200/200?random=43', likes: 67 }
-])
+// 核心统计数据
+const likeSendCount = ref(12)
+const likeReceiveCount = ref(8)
+const visitorCount = ref(26)
+
+// 勋章数据
+const medalCount = ref(4)
+
+// 认证等级计算，和他人页规则统一
+const getAuthLevel = (auth) => {
+  let level = 0
+  if (auth.realName) level = 1
+  if (auth.realName && auth.education) level = 2
+  if (auth.realName && auth.education && auth.work) level = 3
+  return level
+}
 
 // ===== 跳转方法 =====
-const goToSettings = () => {
-  uni.navigateTo({ url: '/pages/profile/settings' })
+// 跳转自己的个人主页（编辑资料）
+const goToMyProfile = () => {
+    uni.navigateTo({ url: '/pages/profile/edit' })
 }
 
-const goToEquity = () => {
-  uni.navigateTo({ url: '/pages/profile/equity' })
-}
-
-const goToPrivacy = () => {
-  uni.navigateTo({ url: '/pages/profile/privacy' })
-}
-
-const goToAntiFraud = () => {
-  uni.navigateTo({ url: '/pages/common/antiFraud' })
-}
-
-const goToSafetyCenter = () => {
-  uni.showToast({ title: '安全中心开发中', icon: 'none' })
-}
-
-const goToCheckin = () => {
-  uni.showToast({ title: '签到成功！', icon: 'success' })
-  checkinDays.value++
-}
-
+// 认证页面跳转
 const goToRealNameAuth = () => {
   uni.navigateTo({ url: '/pages/auth/realname' })
 }
-
 const goToEducationAuth = () => {
   uni.navigateTo({ url: '/pages/auth/education' })
 }
-
 const goToWorkAuth = () => {
   uni.navigateTo({ url: '/pages/auth/work' })
 }
 
-const goToEditProfile = () => {
-  uni.showToast({ title: '编辑资料开发中', icon: 'none' })
+// 喜欢/访客列表
+const goToLikeList = (type) => {
+  uni.navigateTo({ url: `/pages/user/like-list?type=${type}` })
+}
+const goToVisitorList = () => {
+  uni.navigateTo({ url: '/pages/user/visitor-list' })
 }
 
-const handleEditAvatar = () => {
-  uni.chooseImage({
-    count: 1,
-    success: (res) => {
-      uni.showToast({ title: '头像更新成功', icon: 'success' })
-    }
-  })
+// 勋章墙
+const goToMedalWall = () => {
+  uni.navigateTo({ url: '/pages/user/medal-wall' })
 }
 
-const goToMyDynamics = () => {
-  uni.showToast({ title: '全部动态开发中', icon: 'none' })
+// 其他页面跳转
+const goToSettings = () => {
+  uni.navigateTo({ url: '/pages/profile/settings' })
 }
-
-const goToDynamicDetail = (id) => {
-  uni.navigateTo({ url: `/pages/dynamic/detail?id=${id}` })
+const goToEquity = () => {
+  uni.navigateTo({ url: '/pages/profile/equity' })
 }
-
-const goToPublish = () => {
-  uni.navigateTo({ url: '/pages/dynamic/publish' })
+const goToPrivacy = () => {
+  uni.navigateTo({ url: '/pages/profile/privacy' })
 }
-
+const goToAntiFraud = () => {
+  uni.navigateTo({ url: '/pages/common/antiFraud' })
+}
+const goToSafetyCenter = () => {
+  uni.showToast({ title: '安全中心开发中', icon: 'none' })
+}
 const handleFeedback = () => {
   uni.navigateTo({ url: '/pages/common/feedback' })
 }
@@ -305,449 +215,365 @@ const handleFeedback = () => {
 
 <style lang="scss" scoped>
 @import '@/styles/variables.scss';
+@import '@/styles/mixins.scss';
 
 .profile-page {
   min-height: 100vh;
   background-color: $bg-page;
-  padding-bottom: $spacing-lg;
 }
 
-// ----- 导航栏 -----
-.profile-navbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px $page-padding-x;
-  background-color: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba($border-light, 0.5);
-  position: sticky;
-  top: 0;
-  z-index: $z-index-sticky;
-}
-
-.profile-navbar__title {
-  font-size: $font-size-xl;
-  font-weight: $font-weight-medium;
-  color: $text-primary;
-}
-
-.profile-navbar__right {
-  display: flex;
-  gap: $spacing-md;
-}
-
-.profile-navbar__icon {
-  font-size: 20px;
-  color: $text-secondary;
-  cursor: pointer;
-  
-  &:active {
-    opacity: 0.6;
-  }
-}
-
-// ----- 个人信息 -----
+// ----- 个人信息头部 -----
 .profile-header {
   background-color: $bg-card;
-  padding: $spacing-xl $page-padding-x $spacing-lg;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  border-bottom: 1px solid $border-light;
+  padding: $spacing-lg $page-padding-x $spacing-md;
+  margin-bottom: 12px;
 }
 
-.profile-header__avatar-wrapper {
-  position: relative;
+.profile-header__main {
+  display: flex;
+  gap: 14px;
+  align-items: center;
   margin-bottom: $spacing-md;
 }
 
+.profile-header__avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
 .profile-header__avatar {
-  width: 100px;
-  height: 100px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   background-color: $bg-page;
   border: 2px solid $bg-card;
   box-shadow: $shadow-card;
+  display: block;
 }
 
-.profile-header__edit {
+// 头像认证对勾，和他人页完全统一
+.avatar-auth-icon {
   position: absolute;
-  bottom: 0;
   right: 0;
-  width: 32px;
-  height: 32px;
-  background-color: $primary-color;
+  bottom: 2px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 2px solid $bg-card;
-  cursor: pointer;
-  
-  &:active {
-    opacity: 0.8;
-  }
-  
+
   .icon {
-    font-size: 14px;
+    font-size: 11px;
     color: #FFFFFF;
+    line-height: 1;
   }
+
+  &.auth-level-1 {
+    background-color: transparent;
+    border: 1.5px solid #81D4A0;
+    .icon {
+      color: #81D4A0;
+      font-size: 10px;
+    }
+  }
+
+  &.auth-level-2 {
+    background-color: #2ED573;
+    border: 2px solid $bg-card;
+  }
+
+  &.auth-level-3 {
+    background: linear-gradient(135deg, #FFD700, #FFB74D);
+    border: 2px solid $bg-card;
+    box-shadow: 0 0 6px rgba(255, 183, 77, 0.4);
+  }
+}
+
+.profile-header__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-header__name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
 }
 
 .profile-header__name {
-  font-size: $font-size-xl;
+  font-size: 20px;
   font-weight: $font-weight-medium;
   color: $text-primary;
+  line-height: 1.2;
 }
 
-.profile-header__badges {
-  display: flex;
-  gap: $spacing-sm;
-  margin-top: $spacing-sm;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.profile-header__badge {
+.profile-header__edit {
   display: flex;
   align-items: center;
-  gap: $spacing-xs;
-  padding: 4px 12px 4px 6px;
-  font-size: $font-size-xs;
+  gap: 2px;
+  font-size: 12px;
+  color: $primary-color;
+  cursor: pointer;
+
+  .icon {
+    font-size: 11px;
+  }
+
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+.profile-header__id {
+  font-size: 12px;
   color: $text-helper;
+  display: block;
+}
+
+// ----- 认证状态卡片 -----
+.auth-status-card {
+  display: flex;
+  gap: 8px;
+  margin-bottom: $spacing-md;
+}
+
+.auth-status__item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px;
+  border-radius: 10px;
   background-color: $bg-page;
-  border-radius: 20px;
   cursor: pointer;
   transition: all $duration-fast ease;
-  border: 1px solid $border-light;
-  
-  &--done {
-    color: $primary-color;
-    background-color: $primary-light-bg;
-    border-color: $primary-color;
-  }
-  
+
   &:active {
-    transform: scale(0.95);
+    transform: scale(0.98);
+  }
+
+  &.is-active {
+    background-color: rgba(46, 213, 115, 0.08);
+
+    .auth-status__icon {
+      color: #2ED573;
+    }
+    .auth-status__value {
+      color: #2E7D32;
+    }
   }
 }
 
-.profile-header__progress {
-  width: 100%;
-  margin-top: $spacing-md;
-}
-
-.profile-header__progress-bar {
-  width: 100%;
-  height: 4px;
-  background-color: $bg-page;
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.profile-header__progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, $primary-color, $primary-dark);
-  border-radius: 2px;
-  transition: width $duration-slow ease;
-}
-
-.profile-header__progress-text {
-  display: block;
-  font-size: $font-size-xs;
-  color: $text-helper;
-  text-align: center;
-  margin-top: $spacing-xs;
-}
-
-.profile-header__auth-hint {
-  margin-top: $spacing-md;
-  padding: $spacing-sm $spacing-md;
-  background-color: $primary-light-bg;
-  border-radius: $radius-sm;
-  width: 100%;
-  text-align: center;
-}
-
-.profile-header__auth-hint-text {
-  font-size: $font-size-sm;
-  color: $text-secondary;
-  display: block;
-}
-
-.profile-header__auth-hint-actions {
-  display: flex;
-  gap: $spacing-sm;
-  margin-top: $spacing-sm;
-  justify-content: center;
-}
-
-.profile-header__auth-hint-btn {
-  padding: 4px 16px;
-  font-size: $font-size-xs;
-  color: $primary-color;
-  background-color: $bg-card;
-  border-radius: 16px;
-  cursor: pointer;
-  border: 1px solid $primary-color;
-  
-  &:active {
-    opacity: 0.7;
-  }
-}
-
-// ----- 签到+权益概览 -----
-.profile-stats {
-  display: flex;
-  background-color: $bg-card;
-  margin: $spacing-sm $page-padding-x;
-  border-radius: $radius-card;
-  padding: $spacing-sm 0;
-  box-shadow: $shadow-card;
-}
-
-.profile-stats__item {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  padding: $spacing-sm $spacing-md;
-  cursor: pointer;
-  gap: $spacing-sm;
-  
-  &:active {
-    opacity: 0.7;
-  }
-}
-
-.profile-stats__icon {
-  font-size: 20px;
-}
-
-.profile-stats__info {
-  flex: 1;
-}
-
-.profile-stats__label {
-  display: block;
-  font-size: $font-size-xs;
-  color: $text-helper;
-}
-
-.profile-stats__value {
-  display: block;
-  font-size: $font-size-md;
-  font-weight: $font-weight-medium;
-  color: $text-primary;
-}
-
-.profile-stats__arrow {
+.auth-status__icon {
+  flex-shrink: 0;
   font-size: 18px;
   color: $text-helper;
 }
 
-.profile-stats__divider {
-  width: 1px;
-  background-color: $border-light;
+.auth-status__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-// ----- 卡片 -----
-.profile-card {
+.auth-status__label {
+  font-size: 12px;
+  color: $text-primary;
+  line-height: 1.2;
+}
+
+.auth-status__value {
+  font-size: 11px;
+  color: $primary-color;
+  font-weight: $font-weight-regular;
+  line-height: 1.2;
+}
+
+// 资料完善度
+.profile-progress {
+  cursor: pointer;
+
+  &:active {
+    opacity: 0.8;
+  }
+
+  &__bar {
+    width: 100%;
+    height: 4px;
+    background-color: $bg-page;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+
+  &__fill {
+    height: 100%;
+    background: linear-gradient(90deg, $primary-color, $primary-dark);
+    border-radius: 2px;
+    transition: width $duration-slow ease;
+  }
+
+  &__text {
+    font-size: 11px;
+    color: $text-helper;
+  }
+}
+
+// ----- 核心数据统计卡 -----
+.stats-card {
+  display: flex;
+  align-items: center;
   background-color: $bg-card;
-  margin: $spacing-sm $page-padding-x;
+  margin: 0 $page-padding-x 12px;
   border-radius: $radius-card;
-  padding: $spacing-md;
+  padding: $spacing-md 0;
   box-shadow: $shadow-card;
 }
 
-.profile-card__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: $spacing-sm;
-}
-
-.profile-card__title {
-  font-size: $font-size-md;
-  font-weight: $font-weight-medium;
-  color: $text-primary;
-}
-
-.profile-card__more {
-  font-size: $font-size-xs;
-  color: $text-helper;
-  cursor: pointer;
-  
-  &:active {
-    opacity: 0.6;
-  }
-}
-
-.profile-card__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: $spacing-xs $spacing-md;
-}
-
-.profile-card__item {
-  display: flex;
-  justify-content: space-between;
-  padding: $spacing-xs 0;
-}
-
-.profile-card__label {
-  font-size: $font-size-sm;
-  color: $text-helper;
-}
-
-.profile-card__value {
-  font-size: $font-size-sm;
-  color: $text-primary;
-}
-
-.profile-card__edit {
-  text-align: center;
-  margin-top: $spacing-sm;
-  padding-top: $spacing-sm;
-  border-top: 1px solid $border-light;
-  font-size: $font-size-sm;
-  color: $text-helper;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: $spacing-xs;
-  
-  &:active {
-    opacity: 0.6;
-  }
-  
-  .icon {
-    font-size: 14px;
-  }
-}
-
-.profile-card__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: $spacing-sm;
-}
-
-.profile-card__tag {
-  padding: 4px 14px;
-  font-size: $font-size-sm;
-  color: $text-secondary;
-  background-color: $bg-page;
-  border-radius: 14px;
-}
-
-// ----- 我的动态 -----
-.profile-dynamics {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: $spacing-xs;
-}
-
-.profile-dynamics__item {
-  position: relative;
-  padding-bottom: 100%;
-  border-radius: $radius-xs;
-  overflow: hidden;
-  cursor: pointer;
-  
-  &:active {
-    transform: scale(0.98);
-  }
-}
-
-.profile-dynamics__image {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.profile-dynamics__overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: $spacing-xs $spacing-sm;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.5));
-}
-
-.profile-dynamics__count {
-  font-size: $font-size-xs;
-  color: #FFFFFF;
-}
-
-.profile-dynamics__add {
+.stats-card__item {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  background-color: $bg-page;
-  border: 2px dashed $border-light;
-  border-radius: $radius-xs;
+  gap: 4px;
   cursor: pointer;
-  
+
   &:active {
-    background-color: $border-light;
+    opacity: 0.7;
   }
 }
 
-.profile-dynamics__add-icon {
-  font-size: 28px;
+.stats-card__num {
+  font-size: 20px;
+  font-weight: $font-weight-medium;
+  color: $text-primary;
+  line-height: 1.2;
+}
+
+.stats-card__label {
+  font-size: 12px;
   color: $text-helper;
 }
 
-.profile-dynamics__add-text {
-  font-size: $font-size-xs;
-  color: $text-helper;
-  margin-top: $spacing-xs;
+.stats-card__divider {
+  width: 1px;
+  height: 32px;
+  background-color: $border-light;
 }
 
-// ----- 底部菜单 -----
-.profile-menu {
+// ----- 勋章入口卡片 -----
+.entry-card {
   background-color: $bg-card;
-  margin: $spacing-sm $page-padding-x;
+  margin: 0 $page-padding-x 12px;
   border-radius: $radius-card;
   overflow: hidden;
   box-shadow: $shadow-card;
 }
 
-.profile-menu__item {
+.entry-card__item {
   display: flex;
   align-items: center;
   padding: 14px $spacing-md;
-  border-bottom: 1px solid $border-light;
   cursor: pointer;
-  
-  &:last-child {
-    border-bottom: none;
-  }
-  
+
   &:active {
     background-color: $bg-page;
   }
 }
 
-.profile-menu__icon {
+.entry-card__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: $spacing-sm;
+  flex-shrink: 0;
+
+  .icon {
+    font-size: 18px;
+    color: #FFFFFF;
+  }
+
+  &--purple {
+    background: linear-gradient(135deg, #9C27B0, #7B1FA2);
+  }
+}
+
+.entry-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.entry-card__title {
+  display: block;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $text-primary;
+  margin-bottom: 2px;
+}
+
+.entry-card__sub {
+  display: block;
+  font-size: 11px;
+  color: $text-helper;
+}
+
+.entry-card__arrow {
+  font-size: 12px;
+  color: $text-helper;
+}
+
+// ----- 工具菜单 -----
+.menu-card {
+  background-color: $bg-card;
+  margin: 0 $page-padding-x 12px;
+  border-radius: $radius-card;
+  overflow: hidden;
+  box-shadow: $shadow-card;
+}
+
+.menu-card__item {
+  display: flex;
+  align-items: center;
+  padding: 14px $spacing-md;
+  border-bottom: 1px solid $border-light;
+  cursor: pointer;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:active {
+    background-color: $bg-page;
+  }
+}
+
+.menu-card__icon {
   font-size: 18px;
   color: $text-secondary;
   margin-right: $spacing-sm;
 }
 
-.profile-menu__label {
+.menu-card__label {
   flex: 1;
   font-size: $font-size-sm;
   color: $text-primary;
 }
 
-.profile-menu__arrow {
-  font-size: 16px;
+.menu-card__arrow {
+  font-size: 12px;
   color: $text-helper;
+}
+
+// 底部占位
+.page-bottom-placeholder {
+  height: 20px;
 }
 </style>
