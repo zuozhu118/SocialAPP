@@ -28,7 +28,6 @@
                 <image v-if="form.mainImage" class="main-image__img" :src="form.mainImage" mode="aspectFill" />
                 <!-- 已有图片时的编辑浮层，引导用户点击更换 -->
                 <view v-if="form.mainImage" class="main-image__edit-mask">
-                    <text class="icon icon-camera"></text>
                     <text>点击更换图片</text>
                 </view>
                 <view v-else class="main-image__placeholder">
