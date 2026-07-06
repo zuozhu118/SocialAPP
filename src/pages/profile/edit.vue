@@ -18,21 +18,26 @@
             </view>
         </view>
 
-        <!-- ===== 主页主图 ===== -->
+        <!-- ===== 匹配页头图（主页主图） ===== -->
         <view class="edit-card">
             <view class="edit-card__title">
-                主页主图
-                <text class="edit-card__tip">主图将展示在匹配卡片首页，需为本人清晰正脸照</text>
+                匹配首页头图
+                <text class="edit-card__tip">建议上传宽高比 16:9 的图片</text>
             </view>
             <view class="main-image-wrap" @click="changeMainImage">
                 <image v-if="form.mainImage" class="main-image__img" :src="form.mainImage" mode="aspectFill" />
-                <view v-else class="main-image__placeholder">
-                    <text class="icon icon-plus"></text>
-                    <text>上传主图</text>
+                <!-- 已有图片时的编辑浮层，引导用户点击更换 -->
+                <view v-if="form.mainImage" class="main-image__edit-mask">
+                    <text class="icon icon-camera"></text>
+                    <text>点击更换图片</text>
                 </view>
-                <view class="main-image__badge">封面</view>
+                <view v-else class="main-image__placeholder">
+                    <text class="icon icon-camera"></text>
+                    <text class="main-image__placeholder-title">点击上传本人照片</text>
+                    <text class="main-image__placeholder-desc">建议上传清晰正脸照，比例 16:9 效果最佳</text>
+                </view>
             </view>
-            <text class="form-tip">主图会与实名信息进行人脸比对，非本人照片将无法通过审核</text>
+            <text class="form-tip form-tip--warn">请上传本人真实、清晰的图片，非本人照片将无法通过审核</text>
         </view>
 
         <!-- ===== 我的相册（支持拖拽排序） ===== -->
@@ -65,7 +70,6 @@
         <!-- ===== 基础资料 ===== -->
         <view class="edit-card">
             <view class="edit-card__title">基础资料</view>
-
             <!-- 昵称 -->
             <view class="form-item">
                 <text class="form-item__label">昵称</text>
@@ -74,7 +78,6 @@
                        placeholder="请输入昵称"
                        placeholder-class="form-placeholder" />
             </view>
-
             <!-- 性别 -->
             <view class="form-item" @click="selectGender">
                 <text class="form-item__label">性别</text>
@@ -83,7 +86,6 @@
                     <text class="icon icon-arrow-right form-item__arrow"></text>
                 </view>
             </view>
-
             <!-- 生日 -->
             <view class="form-item">
                 <text class="form-item__label">生日</text>
@@ -94,7 +96,6 @@
                     </view>
                 </picker>
             </view>
-
             <!-- 身高 -->
             <view class="form-item">
                 <text class="form-item__label">身高</text>
@@ -107,7 +108,6 @@
                     <text class="form-item__unit">cm</text>
                 </view>
             </view>
-
             <!-- 体重 -->
             <view class="form-item">
                 <text class="form-item__label">体重</text>
@@ -120,7 +120,6 @@
                     <text class="form-item__unit">kg</text>
                 </view>
             </view>
-
             <!-- 学历 -->
             <view class="form-item" @click="selectEducation">
                 <text class="form-item__label">学历</text>
@@ -129,7 +128,6 @@
                     <text class="icon icon-arrow-right form-item__arrow"></text>
                 </view>
             </view>
-
             <!-- 职业 -->
             <view class="form-item">
                 <text class="form-item__label">职业</text>
@@ -138,7 +136,6 @@
                        placeholder="请输入职业"
                        placeholder-class="form-placeholder" />
             </view>
-
             <!-- ===== 所在城市（自动定位 + 手动修改） ===== -->
             <view class="form-item form-item--city">
                 <text class="form-item__label">所在城市</text>
@@ -153,7 +150,6 @@
                     </view>
                 </view>
             </view>
-
             <!-- 籍贯 -->
             <view class="form-item" @click="selectHometown">
                 <text class="form-item__label">籍贯</text>
@@ -162,7 +158,6 @@
                     <text class="icon icon-arrow-right form-item__arrow"></text>
                 </view>
             </view>
-
             <!-- 婚姻状况 -->
             <view class="form-item" @click="selectMarital">
                 <text class="form-item__label">婚姻状况</text>
@@ -171,7 +166,6 @@
                     <text class="icon icon-arrow-right form-item__arrow"></text>
                 </view>
             </view>
-
             <!-- 年收入 -->
             <view class="form-item" @click="selectIncome">
                 <text class="form-item__label">年收入</text>
@@ -180,7 +174,6 @@
                     <text class="icon icon-arrow-right form-item__arrow"></text>
                 </view>
             </view>
-
             <!-- 房产情况 -->
             <view class="form-item" @click="selectHouse">
                 <text class="form-item__label">房产情况</text>
@@ -189,7 +182,6 @@
                     <text class="icon icon-arrow-right form-item__arrow"></text>
                 </view>
             </view>
-
             <!-- 房贷情况 -->
             <view class="form-item" @click="selectHouseLoan">
                 <text class="form-item__label">房贷情况</text>
@@ -198,7 +190,6 @@
                     <text class="icon icon-arrow-right form-item__arrow"></text>
                 </view>
             </view>
-
             <!-- 车辆情况 -->
             <view class="form-item" @click="selectCar">
                 <text class="form-item__label">车辆情况</text>
@@ -207,7 +198,6 @@
                     <text class="icon icon-arrow-right form-item__arrow"></text>
                 </view>
             </view>
-
             <!-- 车贷情况 -->
             <view class="form-item form-item--last" @click="selectCarLoan">
                 <text class="form-item__label">车贷情况</text>
@@ -228,7 +218,7 @@
                        placeholder="请填写微信号，方便对方联系你"
                        placeholder-class="form-placeholder" />
                 <text class="form-tip form-tip--warn">
-                    💡 请勿使用电话号码作为微信号，注意保护个人隐私与财产安全
+                   请勿使用电话号码作为微信号，注意保护个人隐私与财产安全
                 </text>
             </view>
         </view>
@@ -298,13 +288,11 @@
                     <text class="icon icon-arrow-right"></text>
                 </view>
             </view>
-
             <!-- 未测试 -->
             <view v-if="!script.hasTested" class="test-card__empty">
                 <text class="test-card__empty-title">发现你的人生剧本</text>
                 <text class="test-card__empty-desc">10 道精选题目· 约 3 分钟</text>
             </view>
-
             <!-- 已测试 -->
             <view v-else class="test-card__result">
                 <view class="test-card__result-badge" :class="'badge--' + script.result.type">
@@ -312,7 +300,6 @@
                     <text>{{ script.result.name }}</text>
                 </view>
                 <text class="test-card__result-desc">{{ script.result.desc }}</text>
-
                 <view class="test-card__cooldown" v-if="script.cooldownRemain > 0">
                     <text class="icon icon-clock"></text>
                     <text>{{ script.cooldownRemain }} 天后可重测</text>
@@ -335,13 +322,11 @@
                     <text class="icon icon-arrow-right"></text>
                 </view>
             </view>
-
             <!-- 未测试 -->
             <view v-if="!values.hasTested" class="test-card__empty">
                 <text class="test-card__empty-title">探索你的三观态度</text>
                 <text class="test-card__empty-desc">12 道情境题· 约 4 分钟</text>
             </view>
-
             <!-- 已测试 -->
             <view v-else class="test-card__result">
                 <view class="test-card__result-items">
@@ -358,7 +343,6 @@
                         <text class="result-item__value">{{ values.result.life }}</text>
                     </view>
                 </view>
-
                 <view class="test-card__cooldown" v-if="values.cooldownRemain > 0">
                     <text class="icon icon-clock"></text>
                     <text>{{ values.cooldownRemain }} 天后可重测</text>
@@ -373,7 +357,6 @@
         <!-- ===== 期待的另一半 ===== -->
         <view class="edit-card">
             <view class="edit-card__title">期待的另一半</view>
-
             <view class="expect-form">
                 <!-- 年龄范围 -->
                 <view class="expect-form__item">
@@ -385,7 +368,6 @@
                         <text class="expect-form__unit">岁</text>
                     </view>
                 </view>
-
                 <!-- 身高范围 -->
                 <view class="expect-form__item">
                     <text class="expect-form__label">身高范围</text>
@@ -396,7 +378,6 @@
                         <text class="expect-form__unit">cm</text>
                     </view>
                 </view>
-
                 <!-- 最低学历 -->
                 <view class="expect-form__item" @click="selectExpectEducation">
                     <text class="expect-form__label">最低学历</text>
@@ -405,7 +386,6 @@
                         <text class="icon icon-arrow-right form-item__arrow"></text>
                     </view>
                 </view>
-
                 <!-- 城市偏好 -->
                 <view class="expect-form__item" @click="selectExpectCity">
                     <text class="expect-form__label">城市偏好</text>
@@ -414,7 +394,6 @@
                         <text class="icon icon-arrow-right form-item__arrow"></text>
                     </view>
                 </view>
-
                 <!-- 家乡要求 -->
                 <view class="expect-form__item" @click="selectExpectHometown">
                     <text class="expect-form__label">家乡要求</text>
@@ -423,7 +402,6 @@
                         <text class="icon icon-arrow-right form-item__arrow"></text>
                     </view>
                 </view>
-
                 <!-- 婚姻状态（多选） -->
                 <view class="expect-form__item expect-form__item--multi" @click="showMaritalPicker = true">
                     <text class="expect-form__label">婚姻状态</text>
@@ -437,7 +415,6 @@
                         {{ item }} <text class="icon icon-close"></text>
                     </text>
                 </view>
-
                 <!-- 年收入 -->
                 <view class="expect-form__item" @click="selectExpectIncome">
                     <text class="expect-form__label">年收入</text>
@@ -446,7 +423,6 @@
                         <text class="icon icon-arrow-right form-item__arrow"></text>
                     </view>
                 </view>
-
                 <!-- 房产情况 -->
                 <view class="expect-form__item" @click="selectExpectHouse">
                     <text class="expect-form__label">房产情况</text>
@@ -455,7 +431,6 @@
                         <text class="icon icon-arrow-right form-item__arrow"></text>
                     </view>
                 </view>
-
                 <!-- 吸烟情况 -->
                 <view class="expect-form__item" @click="selectExpectSmoke">
                     <text class="expect-form__label">吸烟情况</text>
@@ -464,7 +439,6 @@
                         <text class="icon icon-arrow-right form-item__arrow"></text>
                     </view>
                 </view>
-
                 <!-- 喝酒情况 -->
                 <view class="expect-form__item" @click="selectExpectDrink">
                     <text class="expect-form__label">喝酒情况</text>
@@ -473,7 +447,6 @@
                         <text class="icon icon-arrow-right form-item__arrow"></text>
                     </view>
                 </view>
-
                 <!-- 家庭情况（多选） -->
                 <view class="expect-form__item expect-form__item--multi" @click="showFamilyPicker = true">
                     <text class="expect-form__label">家庭情况</text>
@@ -505,9 +478,7 @@
                           class="picker-option"
                           :class="{ 'picker-option--active': form.expect.marital.includes(item) }"
                           @click="toggleExpectMarital(item)">
-                        <view class="picker-option__check">
-                            <text v-if="form.expect.marital.includes(item)">✓</text>
-                        </view>
+                        <view class="picker-option__check"></view>
                         <text class="picker-option__label">{{ item }}</text>
                     </view>
                 </scroll-view>
@@ -526,9 +497,7 @@
                           class="picker-option"
                           :class="{ 'picker-option--active': form.expect.family.includes(item) }"
                           @click="toggleExpectFamily(item)">
-                        <view class="picker-option__check">
-                            <text v-if="form.expect.family.includes(item)">✓</text>
-                        </view>
+                        <view class="picker-option__check"></view>
                         <text class="picker-option__label">{{ item }}</text>
                     </view>
                 </scroll-view>
@@ -549,7 +518,6 @@
 
     // ===== 选项数据 =====
     const maritalOptions = ['未婚', '离异', '离异未育', '离异带儿子', '离异带女儿', '离异多孩', '丧偶']
-
     const familyOptions = [
         '独生子女',
         '有姐姐',
@@ -567,7 +535,6 @@
         '独立家庭无负担',
         '家庭和睦'
     ]
-
     const hobbyOptions = ['瑜伽', '跑步', '健身', '游泳', '阅读', '电影', '音乐', '摄影', '旅行', '咖啡探店', '美食', '桌游', '剧本杀', '手工', '绘画']
     const personalityOptions = ['独立', '理性', '自律', '乐观', '慢热', '外向', '内向', '温柔', '果断', '目标感强', '情绪稳定', '浪漫', '务实']
     const weekendOptions = ['宅家追剧', '户外徒步', '探店美食', '运动健身', '看书学习', '社交聚会', '打扫做饭', '逛展看剧', '打游戏', '睡懒觉']
@@ -592,18 +559,15 @@
         houseLoan: '无贷款',
         car: '无车',
         carLoan: '无贷款',
-
         album: [
             'https://picsum.photos/400/400?random=31',
             'https://picsum.photos/400/400?random=32',
             'https://picsum.photos/400/400?random=33'
         ],
-
         bio: '理性与浪漫各一半，喜欢有质感的生活。周末喜欢瑜伽和探店，希望遇到同频的人。',
         hobbyTags: ['瑜伽', '阅读', '咖啡探店', '音乐'],
         personalityTags: ['独立', '理性', '自律'],
         weekendTags: ['探店美食', '宅家追剧', '看书学习'],
-
         // 人生剧本
         script: {
             hasTested: false,
@@ -616,7 +580,6 @@
                 desc: '处于事业上升期，看重个人成长与职业发展，希望另一半能并肩同行，彼此支持共同变好。'
             }
         },
-
         // 三观态度
         values: {
             hasTested: false,
@@ -628,7 +591,6 @@
                 life: '工作生活平衡，保持成长'
             }
         },
-
         expect: {
             ageMin: 24,
             ageMax: 32,
@@ -660,11 +622,9 @@
     // 获取定位
     const handleLocation = () => {
         if (locationStatusClass.value === 'location--loading') return
-
         locationStatusClass.value = 'location--loading'
         locationStatusIcon.value = 'icon-location'
         locationStatusText.value = '定位中...'
-
         // 模拟定位请求
         setTimeout(() => {
             // 模拟定位成功
@@ -681,7 +641,6 @@
     const getExpectMaritalDisplay = () => {
         return form.value.expect.marital.join('、')
     }
-
     const getExpectFamilyDisplay = () => {
         return form.value.expect.family.join('、')
     }
@@ -726,7 +685,6 @@
         form.value.album = list
         dragIndex.value = null
     }
-
     const addAlbumImg = () => {
         const remain = 9 - form.value.album.length
         uni.chooseImage({
@@ -736,7 +694,6 @@
             }
         })
     }
-
     const deleteAlbumImg = (idx) => {
         uni.showModal({
             title: '提示',
@@ -748,7 +705,6 @@
             }
         })
     }
-
     const previewAlbum = (idx) => {
         uni.previewImage({
             urls: form.value.album,
@@ -765,11 +721,9 @@
             }
         })
     }
-
     const onBirthdayChange = (e) => {
         form.value.birthday = e.detail.value
     }
-
     const selectEducation = () => {
         const options = ['高中及以下', '大专', '本科', '研究生', '博士及以上']
         uni.showActionSheet({
@@ -779,7 +733,6 @@
             }
         })
     }
-
     // 所在城市（手动选择）
     const selectCity = () => {
         const cities = ['北京', '上海', '深圳', '广州', '杭州', '成都', '武汉', '南京', '西安', '重庆', '长沙', '郑州', '东莞', '青岛', '沈阳', '其他']
@@ -794,11 +747,9 @@
             }
         })
     }
-
     const selectHometown = () => {
         uni.showToast({ title: '调起籍贯选择器', icon: 'none' })
     }
-
     const selectMarital = () => {
         const options = ['未婚', '离异', '离异未育', '离异带儿子', '离异带女儿', '离异多孩', '丧偶']
         uni.showActionSheet({
@@ -808,7 +759,6 @@
             }
         })
     }
-
     const selectIncome = () => {
         const options = ['5W以下', '5-10W', '10-20W', '20-30W', '30-50W', '50W以上']
         uni.showActionSheet({
@@ -818,7 +768,6 @@
             }
         })
     }
-
     const selectHouse = () => {
         const options = ['无房', '有房（本地）', '有房（外地）', '多套房']
         uni.showActionSheet({
@@ -828,7 +777,6 @@
             }
         })
     }
-
     const selectHouseLoan = () => {
         const options = ['无贷款', '有贷款', '已还清']
         uni.showActionSheet({
@@ -838,7 +786,6 @@
             }
         })
     }
-
     const selectCar = () => {
         const options = ['无车', '有车（经济型）', '有车（中档）', '有车（豪华）']
         uni.showActionSheet({
@@ -848,7 +795,6 @@
             }
         })
     }
-
     const selectCarLoan = () => {
         const options = ['无贷款', '有贷款', '已还清']
         uni.showActionSheet({
@@ -864,12 +810,10 @@
         const idx = form.value.hobbyTags.indexOf(tag)
         idx > -1 ? form.value.hobbyTags.splice(idx, 1) : form.value.hobbyTags.push(tag)
     }
-
     const togglePersonalityTag = (tag) => {
         const idx = form.value.personalityTags.indexOf(tag)
         idx > -1 ? form.value.personalityTags.splice(idx, 1) : form.value.personalityTags.push(tag)
     }
-
     const toggleWeekendTag = (tag) => {
         const idx = form.value.weekendTags.indexOf(tag)
         idx > -1 ? form.value.weekendTags.splice(idx, 1) : form.value.weekendTags.push(tag)
@@ -899,7 +843,6 @@
             }
         })
     }
-
     const selectExpectCity = () => {
         const options = ['都可以', '同城优先', '仅限同城']
         uni.showActionSheet({
@@ -909,7 +852,6 @@
             }
         })
     }
-
     const selectExpectHometown = () => {
         const options = ['都可以', '同乡优先', '仅限同乡']
         uni.showActionSheet({
@@ -919,17 +861,14 @@
             }
         })
     }
-
     const toggleExpectMarital = (item) => {
         const idx = form.value.expect.marital.indexOf(item)
         idx > -1 ? form.value.expect.marital.splice(idx, 1) : form.value.expect.marital.push(item)
     }
-
     const removeExpectMarital = (item) => {
         const idx = form.value.expect.marital.indexOf(item)
         if (idx > -1) form.value.expect.marital.splice(idx, 1)
     }
-
     const selectExpectIncome = () => {
         const options = ['不限', '10W以上', '20W以上', '30W以上', '50W以上']
         uni.showActionSheet({
@@ -939,7 +878,6 @@
             }
         })
     }
-
     const selectExpectHouse = () => {
         const options = ['不限', '有房优先', '必须有房', '无房也可']
         uni.showActionSheet({
@@ -949,7 +887,6 @@
             }
         })
     }
-
     const selectExpectSmoke = () => {
         const options = ['不限', '不吸烟', '偶尔可接受', '介意但可商量']
         uni.showActionSheet({
@@ -959,7 +896,6 @@
             }
         })
     }
-
     const selectExpectDrink = () => {
         const options = ['不限', '不喝酒', '偶尔可接受', '介意但可商量']
         uni.showActionSheet({
@@ -969,12 +905,10 @@
             }
         })
     }
-
     const toggleExpectFamily = (item) => {
         const idx = form.value.expect.family.indexOf(item)
         idx > -1 ? form.value.expect.family.splice(idx, 1) : form.value.expect.family.push(item)
     }
-
     const removeExpectFamily = (item) => {
         const idx = form.value.expect.family.indexOf(item)
         if (idx > -1) form.value.expect.family.splice(idx, 1)
@@ -1000,18 +934,18 @@
     .edit-page {
         min-height: 100vh;
         background-color: $bg-page;
-        padding-bottom: 40px;
     }
 
-    // ----- 顶部导航栏 -----
+    // ----- 顶部导航栏：玻璃态效果，与匹配页统一 -----
     .edit-navbar {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 14px $page-padding-x;
-        padding-top: calc(14px + env(safe-area-inset-top));
-        background-color: $bg-card;
-        border-bottom: 1px solid $border-light;
+        padding: 12px $page-padding-x;
+        background-color: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba($border-light, 0.5);
         position: sticky;
         top: 0;
         z-index: 100;
@@ -1036,6 +970,7 @@
         font-size: 17px;
         font-weight: $font-weight-medium;
         color: $text-primary;
+        letter-spacing: 0.5px;
     }
 
     .edit-navbar__save {
@@ -1049,10 +984,10 @@
         }
     }
 
-    // ----- 头像区域 -----
+    // ----- 头像区域：增加阴影提升质感 -----
     .avatar-section {
         background-color: $bg-card;
-        padding: $spacing-lg 0 $spacing-xl;
+        padding: $spacing-xl 0 $spacing-xl;
         margin-bottom: 12px;
         display: flex;
         justify-content: center;
@@ -1060,12 +995,15 @@
 
     .avatar-section__wrap {
         position: relative;
-        width: 90px;
-        height: 90px;
+        width: 96px;
+        height: 96px;
         cursor: pointer;
+        border-radius: 50%;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+        transition: transform 0.2s ease;
 
         &:active {
-            opacity: 0.9;
+            transform: scale(0.96);
         }
     }
 
@@ -1082,30 +1020,31 @@
         bottom: 0;
         left: 0;
         right: 0;
-        height: 30px;
+        height: 32px;
         border-bottom-left-radius: 50%;
         border-bottom-right-radius: 50%;
-        background-color: rgba(0, 0, 0, 0.5);
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         gap: 1px;
-        font-size: 9px;
+        font-size: 10px;
         color: #FFFFFF;
 
         .icon {
-            font-size: 12px;
+            font-size: 13px;
         }
     }
 
-    // ----- 通用卡片 -----
+    // ----- 通用卡片：柔和阴影 + 大圆角 -----
     .edit-card {
         background-color: $bg-card;
         margin: 0 $page-padding-x 12px;
-        border-radius: $radius-card;
-        padding: $spacing-md;
-        box-shadow: $shadow-card;
+        border-radius: 16px;
+        padding: $spacing-md $spacing-md;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        transition: box-shadow 0.2s ease;
     }
 
     .edit-card__title {
@@ -1116,38 +1055,30 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        letter-spacing: 0.3px;
     }
 
     .edit-card__tip {
         font-size: 11px;
         color: $text-helper;
         font-weight: normal;
+        letter-spacing: 0;
     }
 
-    .form-tip {
-        display: block;
-        font-size: 11px;
-        color: $text-helper;
-        margin-top: 8px;
-        line-height: 1.5;
-
-        &--warn {
-            color: #FF9800;
-        }
-    }
-
-    // ----- 主图 -----
+    // ----- 主图区域：16:9比例 + 编辑浮层引导 -----
     .main-image-wrap {
         position: relative;
         width: 100%;
         aspect-ratio: 16 / 9;
-        border-radius: 10px;
+        border-radius: 12px;
         overflow: hidden;
         background-color: $bg-page;
         cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        transition: transform 0.2s ease;
 
         &:active {
-            opacity: 0.9;
+            transform: scale(0.98);
         }
     }
 
@@ -1155,6 +1086,25 @@
         width: 100%;
         height: 100%;
         display: block;
+    }
+    // 已有图片时的编辑浮层
+    .main-image__edit-mask {
+        position: absolute;
+        right: 10px;
+        bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px 12px;
+        background-color: rgba(0, 0, 0, 0.6);
+        color: #FFFFFF;
+        font-size: 11px;
+        border-radius: 16px;
+        backdrop-filter: blur(4px);
+
+        .icon {
+            font-size: 12px;
+        }
     }
 
     .main-image__placeholder {
@@ -1164,43 +1114,67 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 6px;
-        color: $text-helper;
-        font-size: 12px;
+        gap: 8px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #eef1f5 100%);
 
         .icon {
-            font-size: 28px;
+            font-size: 36px;
+            color: $text-helper;
+            opacity: 0.7;
+        }
+
+        &-title {
+            font-size: 14px;
+            color: $text-secondary;
+            font-weight: $font-weight-medium;
+        }
+
+        &-desc {
+            font-size: 11px;
+            color: $text-helper;
         }
     }
 
-    .main-image__badge {
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        padding: 2px 8px;
-        font-size: 10px;
-        color: #FFFFFF;
-        background-color: rgba(0, 0, 0, 0.5);
-        border-radius: 10px;
+    // ----- 表单提示 -----
+    .form-tip {
+        display: block;
+        font-size: 11px;
+        color: $text-helper;
+        margin-top: 10px;
+        line-height: 1.5;
+
+        &--warn {
+            color: #F56C6C;
+            background-color: rgba(245, 108, 108, 0.06);
+            padding: 8px 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
     }
 
-    // ----- 相册网格 -----
+    // ----- 相册网格：宽松间距 + 精致阴影 -----
     .album-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 6px;
+        gap: 8px;
     }
 
     .album-grid__item {
         position: relative;
         aspect-ratio: 1;
-        border-radius: 6px;
+        border-radius: 8px;
         overflow: hidden;
         background-color: $bg-page;
-        transition: opacity 0.2s ease;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 
         &.is-dragging {
             opacity: 0.5;
+            transform: scale(1.05);
+        }
+
+        &:active {
+            transform: scale(0.96);
         }
     }
 
@@ -1217,10 +1191,10 @@
 
     .album-grid__del {
         position: absolute;
-        top: 2px;
-        right: 2px;
-        width: 18px;
-        height: 18px;
+        top: 4px;
+        right: 4px;
+        width: 20px;
+        height: 20px;
         border-radius: 50%;
         background-color: rgba(0, 0, 0, 0.6);
         color: #FFFFFF;
@@ -1229,6 +1203,12 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
+        backdrop-filter: blur(4px);
+        transition: background-color 0.2s;
+
+        &:active {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
     }
 
     .album-grid__add {
@@ -1241,9 +1221,10 @@
         color: $text-helper;
         font-size: 11px;
         cursor: pointer;
+        background-color: $bg-page;
 
         .icon {
-            font-size: 22px;
+            font-size: 24px;
         }
 
         &:active {
@@ -1251,13 +1232,13 @@
         }
     }
 
-    // ----- 表单项 -----
+    // ----- 表单项：宽松间距 + 细分割线 -----
     .form-item {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 14px 0;
-        border-bottom: 1px solid $border-light;
+        padding: 16px 0;
+        border-bottom: 1px solid rgba($border-light, 0.6);
 
         &--last {
             border-bottom: none;
@@ -1267,11 +1248,11 @@
         &--column {
             flex-direction: column;
             align-items: flex-start;
-            gap: 8px;
+            gap: 10px;
         }
 
         &--city {
-            padding: 10px 0;
+            padding: 12px 0;
         }
     }
 
@@ -1280,6 +1261,7 @@
         color: $text-primary;
         flex-shrink: 0;
         width: 80px;
+        font-weight: 400;
     }
 
     .form-item__input {
@@ -1296,9 +1278,9 @@
         &--full {
             text-align: left;
             width: 100%;
-            padding: 10px 12px;
+            padding: 12px 14px;
             background-color: $bg-page;
-            border-radius: 8px;
+            border-radius: 10px;
             box-sizing: border-box;
         }
     }
@@ -1339,7 +1321,7 @@
         flex-shrink: 0;
     }
 
-    // ----- 所在城市（定位组件） -----
+    // ----- 所在城市定位组件 -----
     .form-item__city-wrap {
         flex: 1;
         display: flex;
@@ -1439,34 +1421,36 @@
         color: $text-primary;
         line-height: 1.6;
         background-color: $bg-page;
-        border-radius: 8px;
-        padding: 10px;
+        border-radius: 10px;
+        padding: 12px;
         box-sizing: border-box;
+        border: none;
+        resize: none;
     }
 
     .bio-count {
         text-align: right;
         font-size: 11px;
         color: $text-helper;
-        margin-top: 6px;
+        margin-top: 8px;
     }
 
-    // ----- 标签组 -----
+    // ----- 标签组：圆润胶囊样式 -----
     .tag-group {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 10px;
     }
 
     .edit-tag {
-        padding: 6px 14px;
+        padding: 7px 16px;
         font-size: 12px;
         color: $text-secondary;
         background-color: $bg-page;
-        border: 1px solid $border-light;
-        border-radius: 14px;
+        border: 1px solid transparent;
+        border-radius: 20px;
         cursor: pointer;
-        transition: all $duration-fast ease;
+        transition: all 0.2s ease;
 
         &:active {
             transform: scale(0.96);
@@ -1476,23 +1460,26 @@
             color: $primary-color;
             background-color: $primary-light-bg;
             border-color: $primary-color;
+            font-weight: $font-weight-medium;
         }
     }
 
-    // ----- 测试卡片 -----
+    // ----- 测试卡片：渐变背景 + 精致边框，与匹配页风格统一 -----
     .test-card {
         cursor: pointer;
-        transition: box-shadow 0.2s;
+        transition: all 0.2s ease;
+        border: 1px solid rgba($primary-color, 0.1);
 
         &:active {
-            opacity: 0.95;
+            transform: scale(0.99);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
         }
 
         &__header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
 
         &__title-wrap {
@@ -1521,13 +1508,13 @@
         }
         // 未测试状态
         &__empty {
-            padding: 6px 0 2px;
+            padding: 8px 0 4px;
 
             &-title {
                 font-size: $font-size-sm;
                 font-weight: $font-weight-medium;
                 color: $text-primary;
-                margin-bottom: 2px;
+                margin-bottom: 4px;
             }
 
             &-desc {
@@ -1539,17 +1526,18 @@
         }
         // 已测试状态
         &__result {
-            padding: 4px 0 2px;
+            padding: 6px 0 4px;
 
             &-badge {
                 display: inline-flex;
                 align-items: center;
                 gap: 6px;
-                padding: 4px 14px 4px 12px;
-                border-radius: 16px;
+                padding: 5px 16px 5px 14px;
+                border-radius: 20px;
                 font-size: 13px;
                 font-weight: $font-weight-medium;
-                margin-bottom: 6px;
+                margin-bottom: 8px;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 
                 .icon {
                     font-size: 14px;
@@ -1581,17 +1569,17 @@
                 color: $text-secondary;
                 line-height: 1.6;
                 display: block;
-                margin-bottom: 8px;
+                margin-bottom: 10px;
             }
 
             &-items {
                 display: flex;
                 flex-direction: column;
-                gap: 4px;
-                margin-bottom: 8px;
-                padding: 10px 12px;
-                background: $bg-page;
-                border-radius: 8px;
+                gap: 6px;
+                margin-bottom: 10px;
+                padding: 12px 14px;
+                background: rgba(255, 255, 255, 0.7);
+                border-radius: 10px;
             }
         }
 
@@ -1601,8 +1589,8 @@
             gap: 6px;
             font-size: 12px;
             color: $text-helper;
-            padding-top: 8px;
-            border-top: 1px solid $border-light;
+            padding-top: 10px;
+            border-top: 1px solid rgba($border-light, 0.5);
 
             .icon {
                 font-size: 13px;
@@ -1624,8 +1612,8 @@
         font-size: 13px;
 
         &:not(:last-child) {
-            padding-bottom: 4px;
-            border-bottom: 1px solid $border-light;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba($border-light, 0.5);
         }
 
         &__label {
@@ -1649,8 +1637,8 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid $border-light;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba($border-light, 0.6);
 
             &:last-child {
                 border-bottom: none;
@@ -1680,13 +1668,13 @@
         }
 
         &__input {
-            width: 50px;
+            width: 52px;
             text-align: center;
             font-size: $font-size-sm;
             color: $text-primary;
-            padding: 4px 6px;
             background-color: $bg-page;
-            border-radius: 6px;
+            border-radius: 8px;
+            border: none;
         }
 
         &__line {
@@ -1703,8 +1691,8 @@
         &__tags {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
-            padding: 6px 0 2px 80px;
+            gap: 8px;
+            padding: 8px 0 4px 80px;
         }
     }
 
@@ -1712,12 +1700,13 @@
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        padding: 4px 10px 4px 12px;
+        padding: 5px 12px 5px 14px;
         font-size: 12px;
         color: $text-secondary;
         background-color: $bg-page;
-        border: 1px solid $border-light;
-        border-radius: 12px;
+        border: 1px solid transparent;
+        border-radius: 16px;
+        transition: all 0.2s ease;
 
         .icon {
             font-size: 10px;
@@ -1728,9 +1717,13 @@
                 opacity: 0.6;
             }
         }
+
+        &:active {
+            transform: scale(0.96);
+        }
     }
 
-    // ----- 多选弹窗 -----
+    // ----- 多选弹窗：毛玻璃背景 + 圆形选择框 -----
     .picker-overlay {
         position: fixed;
         top: 0;
@@ -1743,21 +1736,23 @@
         align-items: flex-end;
         justify-content: center;
         animation: fadeIn $duration-fast ease;
+        backdrop-filter: blur(2px);
     }
 
     .picker-panel {
         background-color: $bg-card;
-        border-radius: $radius-card $radius-card 0 0;
+        border-radius: 20px 20px 0 0;
         width: 100%;
-        max-height: 60vh;
+        max-height: 65vh;
         animation: slideUp $duration-base ease;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
 
         &__header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: $spacing-md $spacing-lg;
-            border-bottom: 1px solid $border-light;
+            border-bottom: 1px solid rgba($border-light, 0.5);
         }
 
         &__title {
@@ -1779,7 +1774,7 @@
 
         &__body {
             padding: $spacing-sm $spacing-lg;
-            max-height: 50vh;
+            max-height: 55vh;
         }
     }
 
@@ -1787,27 +1782,34 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 14px 0;
-        border-bottom: 1px solid $border-light;
+        padding: 16px 0;
+        border-bottom: 1px solid rgba($border-light, 0.5);
         cursor: pointer;
+        transition: background-color 0.2s ease;
 
         &:last-child {
             border-bottom: none;
         }
 
         &:active {
-            opacity: 0.7;
+            background-color: $bg-page;
         }
 
         &--active {
             .picker-option__check {
                 background-color: $primary-color;
-                color: #FFFFFF;
                 border-color: $primary-color;
+
+                &::after {
+                    content: '✓';
+                    color: #FFFFFF;
+                    font-size: 12px;
+                }
             }
 
             .picker-option__label {
                 color: $primary-color;
+                font-weight: $font-weight-medium;
             }
         }
     }
@@ -1815,22 +1817,20 @@
     .picker-option__check {
         width: 20px;
         height: 20px;
-        border-radius: 4px;
+        border-radius: 50%;
         border: 1.5px solid $border-light;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 12px;
-        color: transparent;
         flex-shrink: 0;
-        transition: all $duration-fast ease;
+        transition: all 0.2s ease;
     }
 
     .picker-option__label {
         font-size: $font-size-sm;
         color: $text-primary;
         flex: 1;
-        transition: color $duration-fast ease;
+        transition: color 0.2s ease;
     }
 
     // ----- 动画 -----
@@ -1858,6 +1858,6 @@
 
     // 底部占位
     .edit-bottom-placeholder {
-        height: 20px;
+        height: 10px;
     }
 </style>
