@@ -12,7 +12,6 @@
             <view class="avatar-section__wrap" @click="changeAvatar">
                 <image class="avatar-section__img" :src="form.avatar" mode="aspectFill" />
                 <view class="avatar-section__mask">
-                    <text class="icon icon-camera"></text>
                     <text>更换头像</text>
                 </view>
             </view>
@@ -21,7 +20,7 @@
         <!-- ===== 匹配页头图（主页主图） ===== -->
         <view class="edit-card">
             <view class="edit-card__title">
-                匹配首页头图
+                首页主图
                 <text class="edit-card__tip">建议上传宽高比 16:9 的图片</text>
             </view>
             <view class="main-image-wrap" @click="changeMainImage">
@@ -31,7 +30,6 @@
                     <text>点击更换图片</text>
                 </view>
                 <view v-else class="main-image__placeholder">
-                    <text class="icon icon-camera"></text>
                     <text class="main-image__placeholder-title">点击上传本人照片</text>
                     <text class="main-image__placeholder-desc">建议上传清晰正脸照，比例 16:9 效果最佳</text>
                 </view>
