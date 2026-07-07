@@ -1,6 +1,6 @@
 <template>
     <view class="square-page">
-        <!-- 导航栏：仅保留推荐/关注Tab -->
+        <!-- 导航栏：仅保留推荐/喜欢Tab -->
         <view class="square-navbar">
             <view class="square-navbar__tabs">
                 <text class="square-navbar__tab"
@@ -8,7 +8,7 @@
                       @click="switchTab('recommend')">推荐</text>
                 <text class="square-navbar__tab"
                       :class="{ 'square-navbar__tab--active': currentTab === 'follow' }"
-                      @click="switchTab('follow')">关注</text>
+                      @click="switchTab('follow')">喜欢</text>
             </view>
         </view>
 
@@ -34,19 +34,13 @@
                             </view>
                         </view>
                         <view class="square-item__user-info">
-                            <!-- 第一行：昵称 + 性别 + 关注按钮 -->
+                            <!-- 第一行：昵称 + 性别  -->
                             <view class="square-item__name-row">
                                 <text class="square-item__name" @click="goToProfile(item.userId)">{{ item.userName }}</text>
                                 <!-- 性别图标 -->
                                 <text class="square-item__gender" :class="item.gender === 'female' ? 'is-female' : 'is-male'">
                                     {{ item.gender === 'female' ? '♀' : '♂' }}
                                 </text>
-                                <!-- 关注按钮 -->
-                                <button class="follow-btn"
-                                        :class="{ 'follow-btn--followed': item.isFollowed }"
-                                        @click="toggleFollow(index)">
-                                    {{ item.isFollowed ? '已关注' : '+ 关注' }}
-                                </button>
                             </view>
                             <!-- 第二行：年龄·职业·居住地 -->
                             <view class="square-item__user-meta">
@@ -272,15 +266,6 @@
         })
     }
 
-    // 关注/取消关注
-    const toggleFollow = (index) => {
-        const item = dynamicList.value[index]
-        item.isFollowed = !item.isFollowed
-        uni.showToast({
-            title: item.isFollowed ? '关注成功' : '已取消关注',
-            icon: 'none'
-        })
-    }
 
     // 点赞
     const handleLike = (index) => {
@@ -628,29 +613,7 @@
         }
     }
 
-    // 关注按钮
-    .follow-btn {
-        padding: 4px 14px;
-        font-size: 12px;
-        color: $primary-color;
-        background-color: $primary-light-bg;
-        border: 1px solid $primary-color;
-        border-radius: 14px;
-        line-height: 1.3;
-        transition: all $duration-fast ease;
-        flex-shrink: 0;
-        margin-left: 2px;
 
-        &:active {
-            opacity: 0.8;
-        }
-
-        &--followed {
-            color: $text-helper;
-            background-color: $bg-page;
-            border-color: $border-light;
-        }
-    }
 
     // ----- 加载更多 -----
     .square-loading {

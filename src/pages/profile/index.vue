@@ -181,15 +181,15 @@ const goToWorkAuth = () => {
 
 // 喜欢/访客列表
 const goToLikeList = (type) => {
-  uni.navigateTo({ url: `/pages/user/like-list?type=${type}` })
+  uni.navigateTo({ url: `/pages/user/likeList?type=${type}` })
 }
 const goToVisitorList = () => {
-  uni.navigateTo({ url: '/pages/user/visitor-list' })
+  uni.navigateTo({ url: '/pages/user/visitorList' })
 }
 
 // 勋章墙
 const goToMedalWall = () => {
-  uni.navigateTo({ url: '/pages/user/medal-wall' })
+  uni.navigateTo({ url: '/pages/user/medalWall' })
 }
 
 // 其他页面跳转

@@ -147,6 +147,27 @@
         "navigationBarTitleText": "三观态度测试",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/user/medalWall",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的勋章"
+      }
+    },
+    {
+      "path": "pages/user/likeList",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "喜欢列表"
+      }
+    },
+    {
+      "path": "pages/user/visitorList",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "最近来访"
+      }
     }
 
 

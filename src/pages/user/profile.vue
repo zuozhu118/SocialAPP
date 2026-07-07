@@ -20,7 +20,7 @@
                     </view>
 
                     <view class="profile-base__info">
-                        <!-- 昵称 + 性别 + 关注按钮 -->
+                        <!-- 昵称 + 性别 + 喜欢按钮 -->
                         <view class="profile-base__name-row">
                             <text class="profile-base__name">{{ userInfo.userName }}</text>
                             <text class="profile-base__gender" :class="userInfo.gender === 'female' ? 'is-female' : 'is-male'">
@@ -29,7 +29,7 @@
                             <button class="follow-btn"
                                     :class="{ 'follow-btn--followed': userInfo.isFollowed }"
                                     @click="toggleFollow">
-                                {{ userInfo.isFollowed ? '已关注' : '+ 关注' }}
+                                {{ userInfo.isFollowed ? '已喜欢' : '+ 喜欢Ta' }}
                             </button>
                         </view>
                         <!-- 基础信息 -->
@@ -361,11 +361,11 @@
         })
     }
 
-    // 关注/取消关注
+    // 喜欢/取消喜欢
     const toggleFollow = () => {
         userInfo.value.isFollowed = !userInfo.value.isFollowed
         uni.showToast({
-            title: userInfo.value.isFollowed ? '关注成功' : '已取消关注',
+            title: userInfo.value.isFollowed ? '喜欢成功' : '已取消喜欢',
             icon: 'none'
         })
     }
