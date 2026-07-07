@@ -168,6 +168,20 @@
         "navigationStyle": "custom",
         "navigationBarTitleText": "最近来访"
       }
+    },
+    {
+      "path": "pages/match/apply",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "交换联系方式"
+      }
+    },
+    {
+      "path": "pages/match/myApply",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的申请"
+      }
     }
 
 
