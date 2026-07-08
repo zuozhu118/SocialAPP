@@ -1,255 +1,228 @@
 <template>
     <view class="profile-page" @scroll="onPageScroll">
-        <!-- 顶部封面：16:9 微信朋友圈标准比例 -->
-        <view class="profile-cover">
-            <image class="profile-cover__img" :src="userInfo.coverImage" mode="aspectFill" />
-            <view class="profile-cover__mask"></view>
+        <!-- 顶部封面（完整显示，底部毛玻璃过渡） -->
+        <view class="cover-section">
+            <image class="cover-section__image" :src="userInfo.coverImage" mode="aspectFill" />
+            <view class="cover-section__glass"></view>
         </view>
 
-        <!-- 主内容区 -->
-        <view class="profile-content">
-            <!-- 用户基础信息卡片 -->
-            <view class="profile-card profile-base-card">
-                <view class="profile-base">
-                    <!-- 头像 + 认证等级对勾 -->
-                    <view class="profile-base__avatar-wrap">
-                        <image class="profile-base__avatar" :src="userInfo.userAvatar" mode="aspectFill" />
-                        <view class="avatar-auth-icon" :class="'auth-level-' + getAuthLevel(userInfo.auth)" v-if="userInfo.auth.realName">
-                            <text class="icon icon-check"></text>
-                        </view>
-                    </view>
-
-                    <view class="profile-base__info">
-                        <!-- 昵称 + 性别 + 喜欢按钮 -->
-                        <view class="profile-base__name-row">
-                            <text class="profile-base__name">{{ userInfo.userName }}</text>
-                            <text class="profile-base__gender" :class="userInfo.gender === 'female' ? 'is-female' : 'is-male'">
-                                {{ userInfo.gender === 'female' ? '♀' : '♂' }}
-                            </text>
-                            <button class="follow-btn"
-                                    :class="{ 'follow-btn--followed': userInfo.isFollowed }"
-                                    @click="toggleFollow">
-                                {{ userInfo.isFollowed ? '已喜欢' : '+ 喜欢Ta' }}
-                            </button>
-                        </view>
-                        <!-- 基础信息 -->
-                        <view class="profile-base__meta">
-                            {{ userInfo.age }}岁 · {{ userInfo.occupation }} · {{ userInfo.district }}
-                        </view>
-                    </view>
-                </view>
-
-                <!-- 个人简介 -->
-                <view class="profile-bio">
-                    {{ userInfo.bio }}
-                </view>
-
-                <!-- 认证信任标识：黄金位一行展示 -->
-                <view class="auth-showcase">
-                    <view class="auth-showcase__item" :class="{ 'is-active': userInfo.auth.realName }">
-                        <text class="auth-showcase__icon icon icon-id-card"></text>
-                        <view class="auth-showcase__text">
-                            <text class="auth-showcase__label">实名</text>
-                            <text class="auth-showcase__status">
-                                <text class="icon icon-check"></text>
-                                已认证
-                            </text>
-                        </view>
-                    </view>
-
-                    <view class="auth-showcase__item" :class="{ 'is-active': userInfo.auth.education }">
-                        <text class="auth-showcase__icon icon icon-graduation"></text>
-                        <view class="auth-showcase__text">
-                            <text class="auth-showcase__label">学历</text>
-                            <text class="auth-showcase__status">
-                                <text class="icon icon-check"></text>
-                                已认证
-                            </text>
-                        </view>
-                    </view>
-
-                    <view class="auth-showcase__item" :class="{ 'is-active': userInfo.auth.work }">
-                        <text class="auth-showcase__icon icon icon-briefcase"></text>
-                        <view class="auth-showcase__text">
-                            <text class="auth-showcase__label">工作</text>
-                            <text class="auth-showcase__status">
-                                <text class="icon icon-check"></text>
-                                已认证
-                            </text>
-                        </view>
-                    </view>
+        <!-- ===== 用户信息（在图片下方） ===== -->
+        <view class="user-info-section">
+            <view class="user-info__avatar-wrap">
+                <image class="user-info__avatar" :src="userInfo.userAvatar" mode="aspectFill" />
+                <view class="avatar-auth-badge" v-if="userInfo.auth.realName">
+                    <text class="icon icon-check"></text>
                 </view>
             </view>
-
-            <!-- 趣味勋章 -->
-            <view class="profile-card">
-                <view class="profile-card__title">Ta的勋章</view>
-                <view class="fun-medals">
-                    <view v-for="(medal, idx) in userInfo.showMedals"
-                          :key="idx"
-                          class="medal-tag"
-                          :class="'medal-tag--' + medal.type"
-                          @click="goToMedalDetail(medal)">
-                        <text class="icon" :class="medal.icon"></text>
-                        <text>{{ medal.name }}</text>
-                    </view>
-                </view>
-            </view>
-
-            <!-- 个人资料 -->
-            <view class="profile-card">
-                <view class="profile-card__title">个人资料</view>
-                <view class="match-profile__grid">
-                    <view class="match-profile__item">
-                        {{ userInfo.profile.birthYear }}年 · {{ userInfo.profile.constellation }}
-                    </view>
-                    <view class="match-profile__item">
-                        {{ userInfo.profile.height }}cm · {{ userInfo.profile.weight }}kg
-                    </view>
-                    <view class="match-profile__item">
-                        学历：{{ userInfo.profile.education }}
-                    </view>
-                    <view class="match-profile__item">
-                        职业：{{ userInfo.profile.career }}
-                    </view>
-                    <view class="match-profile__item">
-                        籍贯：{{ userInfo.profile.hometown }}
-                    </view>
-                    <view class="match-profile__item">
-                        婚况：{{ userInfo.profile.maritalStatus }}
-                    </view>
-                    <view class="match-profile__item">
-                        年收入：{{ userInfo.profile.income }}
-                    </view>
-                </view>
-                <view class="match-profile__tags">
-                    <text v-for="tag in userInfo.profile.lifeTags" :key="tag" class="tag tag--life">{{ tag }}</text>
-                </view>
-            </view>
-
-            <!-- 个人标签 -->
-            <view class="profile-card">
-                <view class="profile-card__title">个人标签</view>
-                <view class="profile-tags">
-                    <view class="tags-row">
-                        <text class="tags-label">兴趣爱好</text>
-                        <view class="tags-list">
-                            <text v-for="tag in userInfo.hobbyTags" :key="'h'+tag" class="tag tag--hobby">{{ tag }}</text>
-                        </view>
-                    </view>
-                    <view class="tags-row">
-                        <text class="tags-label">性格特质</text>
-                        <view class="tags-list">
-                            <text v-for="tag in userInfo.personalityTags" :key="'p'+tag" class="tag tag--personality">{{ tag }}</text>
-                        </view>
-                    </view>
-                </view>
-            </view>
-
-            <!-- 人生剧本 -->
-            <view class="profile-card profile-script">
-                <view class="profile-card__header">
-                    <view class="profile-card__title">人生剧本</view>
-                    <text class="profile-script__entry" @click="viewScriptDetail">
-                        查看详情 <text class="icon icon-arrow-right"></text>
+            <view class="user-info__detail">
+                <view class="user-info__name-row">
+                    <text class="user-info__name">{{ userInfo.userName }}</text>
+                    <text class="user-info__gender" :class="userInfo.gender === 'female' ? 'is-female' : 'is-male'">
+                        {{ userInfo.gender === 'female' ? '♀' : '♂' }}
                     </text>
                 </view>
-                <view class="match-script__card">
-                    <view class="match-script__type">
-                        <text class="match-script__label">TA的剧本</text>
-                        <text class="match-script__name">{{ userInfo.lifeScript.name }}</text>
-                    </view>
-                    <text class="match-script__desc">{{ userInfo.lifeScript.desc }}</text>
-                    <view class="match-script__tags">
-                        <text v-for="tag in userInfo.lifeScript.tags" :key="tag" class="script-tag">{{ tag }}</text>
-                    </view>
+                <view class="user-info__meta">
+                    <text>{{ userInfo.age }}岁</text>
+                    <text class="dot">·</text>
+                    <text>{{ userInfo.city }}</text>
+                    <text class="dot">·</text>
+                    <text>ID {{ userId }}</text>
                 </view>
             </view>
+        </view>
 
-            <!-- 三观态度 -->
-            <view class="profile-card profile-values">
-                <view class="profile-card__header">
-                    <view class="profile-card__title">三观态度</view>
-                    <text class="profile-values__entry" @click="viewMatchDegree">
-                        测契合度 <text class="icon icon-arrow-right"></text>
+        <!-- ===== 认证部分（轻量标签，仅展示） ===== -->
+        <view class="auth-section">
+            <view class="auth-item" :class="userInfo.auth.realName ? 'is-active' : 'is-inactive'">
+                <text class="auth-item__icon">{{ userInfo.auth.realName ? '✓' : '○' }}</text>
+                <text class="auth-item__label">身份认证</text>
+            </view>
+            <view class="auth-item" :class="userInfo.auth.education ? 'is-active' : 'is-inactive'">
+                <text class="auth-item__icon">{{ userInfo.auth.education ? '✓' : '○' }}</text>
+                <text class="auth-item__label">学历认证</text>
+            </view>
+            <view class="auth-item" :class="userInfo.auth.work ? 'is-active' : 'is-inactive'">
+                <text class="auth-item__icon">{{ userInfo.auth.work ? '✓' : '○' }}</text>
+                <text class="auth-item__label">单位认证</text>
+            </view>
+        </view>
+
+        <!-- ===== 个人简介 ===== -->
+        <view class="bio-section" v-if="userInfo.bio">
+            <text class="bio-section__text">{{ userInfo.bio }}</text>
+        </view>
+
+        <!-- ===== 标签云 ===== -->
+        <view class="tags-section">
+            <view class="tags-group" v-if="userInfo.hobbyTags.length">
+                <text class="tags-group__label">🎯 兴趣爱好</text>
+                <view class="tags-group__list">
+                    <text v-for="tag in userInfo.hobbyTags" :key="tag" class="tag tag--hobby">{{ tag }}</text>
+                </view>
+            </view>
+            <view class="tags-group" v-if="userInfo.personalityTags.length">
+                <text class="tags-group__label">💫 性格特质</text>
+                <view class="tags-group__list">
+                    <text v-for="tag in userInfo.personalityTags" :key="tag" class="tag tag--personality">{{ tag }}</text>
+                </view>
+            </view>
+            <view class="tags-group" v-if="userInfo.weekendTags && userInfo.weekendTags.length">
+                <text class="tags-group__label">🌿 周末日常</text>
+                <view class="tags-group__list">
+                    <text v-for="tag in userInfo.weekendTags" :key="tag" class="tag tag--weekend">{{ tag }}</text>
+                </view>
+            </view>
+        </view>
+
+        <!-- ===== 详细资料卡片 ===== -->
+        <view class="detail-card">
+            <view class="detail-card__title">📋 详细资料</view>
+            <view class="detail-card__grid">
+                <view class="detail-item">
+                    <text class="detail-item__label">身高</text>
+                    <text class="detail-item__value">{{ userInfo.profile.height }} cm</text>
+                </view>
+                <view class="detail-item">
+                    <text class="detail-item__label">体重</text>
+                    <text class="detail-item__value">{{ userInfo.profile.weight }} kg</text>
+                </view>
+                <view class="detail-item">
+                    <text class="detail-item__label">学历</text>
+                    <text class="detail-item__value">{{ userInfo.profile.education }}</text>
+                </view>
+                <view class="detail-item">
+                    <text class="detail-item__label">职业</text>
+                    <text class="detail-item__value">{{ userInfo.profile.career }}</text>
+                </view>
+                <view class="detail-item">
+                    <text class="detail-item__label">籍贯</text>
+                    <text class="detail-item__value">{{ userInfo.profile.hometown }}</text>
+                </view>
+                <view class="detail-item">
+                    <text class="detail-item__label">婚姻状况</text>
+                    <text class="detail-item__value">{{ userInfo.profile.maritalStatus }}</text>
+                </view>
+                <view class="detail-item">
+                    <text class="detail-item__label">年收入</text>
+                    <text class="detail-item__value">{{ userInfo.profile.income }}</text>
+                </view>
+                <view class="detail-item">
+                    <text class="detail-item__label">房产</text>
+                    <text class="detail-item__value">{{ userInfo.profile.house || '无房' }}</text>
+                </view>
+                <view class="detail-item">
+                    <text class="detail-item__label">车辆</text>
+                    <text class="detail-item__value">{{ userInfo.profile.car || '无车' }}</text>
+                </view>
+            </view>
+        </view>
+
+        <!-- ===== 人生剧本 ===== -->
+        <view class="script-card" v-if="userInfo.lifeScript">
+            <view class="script-card__header">
+                <view class="script-card__title-wrap">
+                    <text class="script-card__title">📖 人生剧本</text>
+                    <text class="script-card__badge" :class="'badge--' + getScriptType(userInfo.lifeScript.name)">
+                        {{ userInfo.lifeScript.name }}
                     </text>
                 </view>
-                <view class="match-values__list">
-                    <view class="match-values__item">
-                        <text class="match-values__label">恋爱观</text>
-                        <text class="match-values__text">{{ userInfo.values.love }}</text>
-                    </view>
-                    <view class="match-values__item">
-                        <text class="match-values__label">消费观</text>
-                        <text class="match-values__text">{{ userInfo.values.consume }}</text>
-                    </view>
-                    <view class="match-values__item">
-                        <text class="match-values__label">生活观</text>
-                        <text class="match-values__text">{{ userInfo.values.life }}</text>
-                    </view>
+                <text class="script-card__entry" @click="goToScriptTest">
+                    测测我的 >
+                </text>
+            </view>
+            <text class="script-card__desc">{{ userInfo.lifeScript.desc }}</text>
+            <view class="script-card__tags">
+                <text v-for="tag in userInfo.lifeScript.tags" :key="tag" class="script-tag">{{ tag }}</text>
+            </view>
+        </view>
+
+        <!-- ===== 三观态度 ===== -->
+        <view class="values-card" v-if="userInfo.values">
+            <view class="values-card__header">
+                <text class="values-card__title">💭 三观态度</text>
+                <text class="values-card__entry" @click="goToValuesTest">
+                    测契合度 >
+                </text>
+            </view>
+            <view class="values-card__list">
+                <view class="value-item">
+                    <text class="value-item__label">恋爱观</text>
+                    <text class="value-item__text">{{ userInfo.values.love }}</text>
+                </view>
+                <view class="value-item">
+                    <text class="value-item__label">消费观</text>
+                    <text class="value-item__text">{{ userInfo.values.consume }}</text>
+                </view>
+                <view class="value-item">
+                    <text class="value-item__label">生活观</text>
+                    <text class="value-item__text">{{ userInfo.values.life }}</text>
                 </view>
             </view>
+        </view>
 
-            <!-- 期待的另一半 -->
-            <view class="profile-card">
-                <view class="profile-card__title">Ta期待的另一半</view>
-                <view class="match-expect__tags">
-                    <text v-for="tag in userInfo.expectTags" :key="tag" class="tag tag--expect">{{ tag }}</text>
+        <!-- ===== 期待的另一半 ===== -->
+        <view class="expect-card">
+            <view class="expect-card__title">💕 期待的另一半</view>
+            <view class="expect-card__tags">
+                <text v-for="tag in userInfo.expectTags" :key="tag" class="expect-tag">{{ tag }}</text>
+            </view>
+        </view>
+
+        <!-- ===== Ta的相册 ===== -->
+        <view class="album-card" v-if="userInfo.album.length">
+            <view class="album-card__header">
+                <text class="album-card__title">🖼️ Ta的相册</text>
+                <text class="album-card__count">共 {{ userInfo.album.length }} 张</text>
+            </view>
+            <view class="album-card__grid">
+                <image v-for="(img, idx) in userInfo.album.slice(0, 6)"
+                       :key="idx"
+                       class="album-card__item"
+                       :src="img"
+                       mode="aspectFill"
+                       @click="previewAlbum(idx)" />
+                <view v-if="userInfo.album.length > 6" class="album-card__more" @click="viewAllAlbum">
+                    <text>+{{ userInfo.album.length - 6 }}</text>
                 </view>
             </view>
+        </view>
 
-            <!-- Ta的相册：微信同款3列正方形网格 -->
-            <view class="profile-card">
-                <view class="profile-card__header">
-                    <view class="profile-card__title">Ta的相册</view>
-                    <text class="profile-card__more" @click="viewAllAlbum">
-                        共{{ userInfo.album.length }}张 <text class="icon icon-arrow-right"></text>
-                    </text>
-                </view>
-                <view class="album-grid">
-                    <image v-for="(img, idx) in userInfo.album.slice(0, 6)"
-                           :key="idx"
-                           class="album-grid__item"
-                           :src="img"
-                           mode="aspectFill"
-                           @click="previewAlbum(idx)" />
-                </view>
+        <!-- ===== Ta的动态（精选） ===== -->
+        <view class="post-card" v-if="userPosts.length">
+            <view class="post-card__header">
+                <text class="post-card__title">📝 Ta的动态</text>
+                <text class="post-card__more" @click="viewAllPosts">查看全部 ></text>
             </view>
-
-            <!-- Ta的动态 -->
-            <view class="profile-card">
-                <view class="profile-card__header">
-                    <view class="profile-card__title">Ta的动态</view>
-                    <text class="profile-card__more" @click="viewAllPosts">
-                        全部 <text class="icon icon-arrow-right"></text>
-                    </text>
-                </view>
-                <view class="post-grid">
-                    <view class="post-grid__item" v-for="(post, idx) in userPosts" :key="post.id" @click="goToPostDetail(post.id)">
-                        <image class="post-grid__img" :src="post.images[0]" mode="aspectFill" />
-                        <view v-if="post.isQuality" class="post-grid__badge">
-                            <text class="icon icon-star"></text> 精选
-                        </view>
-                        <view class="post-grid__info">
+            <view class="post-card__grid">
+                <view class="post-item" v-for="post in userPosts.slice(0, 4)" :key="post.id" @click="goToPostDetail(post.id)">
+                    <image class="post-item__image" :src="post.images[0]" mode="aspectFill" />
+                    <view class="post-item__overlay">
+                        <view class="post-item__stats">
                             <text class="icon icon-heart"></text>
                             <text>{{ post.likes }}</text>
                         </view>
+                        <view v-if="post.isQuality" class="post-item__badge">优质</view>
                     </view>
                 </view>
             </view>
+        </view>
 
-            <!-- 底部信息栏：IP + 举报拉黑 -->
-            <view class="profile-footer">
-                <text class="profile-footer__ip">IP属地：{{ userInfo.ipLocation }}</text>
-                <view class="profile-footer__ops">
-                    <text class="profile-footer__link" @click="handleReport">举报</text>
-                    <text class="profile-footer__split">·</text>
-                    <text class="profile-footer__link" @click="handleBlock">拉黑</text>
-                </view>
+        <!-- ===== 底部信息栏：IP + 举报拉黑 ===== -->
+        <view class="profile-footer">
+            <text class="profile-footer__ip">IP属地：{{ userInfo.ipLocation || '未知' }}</text>
+            <view class="profile-footer__ops">
+                <text class="profile-footer__link" @click="handleReport">举报</text>
+                <text class="profile-footer__split">·</text>
+                <text class="profile-footer__link" @click="handleBlock">拉黑</text>
             </view>
+        </view>
 
-            <!-- 底部占位 -->
-            <view class="profile-bottom-placeholder"></view>
+        <!-- ===== 底部占位 ===== -->
+        <view class="bottom-placeholder"></view>
+
+        <!-- ===== 喜欢/取消喜欢 悬浮按钮（右下角） ===== -->
+        <view class="like-fab" :class="{ 'like-fab--active': userInfo.isFollowed }" @click="toggleFollow">
+            <text class="like-fab__icon">{{ userInfo.isFollowed ? '❤️' : '🤍' }}</text>
         </view>
     </view>
 </template>
@@ -257,24 +230,21 @@
 <script setup>
     import { ref, onMounted } from 'vue'
 
-    const scrollTop = ref(0)
-
-    // 认证等级计算
-    const getAuthLevel = (auth) => {
-        let level = 0
-        if (auth.realName) level = 1
-        if (auth.realName && auth.education) level = 2
-        if (auth.realName && auth.education && auth.work) level = 3
-        return level
+    // 剧本类型映射
+    const getScriptType = (name) => {
+        if (name.includes('事业')) return 'career'
+        if (name.includes('稳定')) return 'stable'
+        if (name.includes('浪漫')) return 'romantic'
+        if (name.includes('自由')) return 'free'
+        return 'career'
     }
-
     // 用户详情数据
     const userInfo = ref({
-        userId: 2,
+        userId: '10086520',
         userName: '陈橘子',
         gender: 'female',
         age: 26,
-        occupation: '金融分析师',
+        city: '北京',
         district: '浦东新区',
         userAvatar: 'https://picsum.photos/200/200?random=11',
         coverImage: 'https://picsum.photos/800/450?random=102',
@@ -294,19 +264,14 @@
             hometown: '杭州',
             maritalStatus: '未婚',
             income: '20-30W',
+            house: '无房',
+            car: '无车',
             lifeTags: ['无车', '无房', '不吸烟', '偶尔喝酒']
         },
 
-        // 趣味勋章
-        showMedals: [
-            { id: 1, name: '学术钻研人', icon: 'icon-graduation', type: 'purple' },
-            { id: 2, name: '职场精英', icon: 'icon-briefcase', type: 'blue' },
-            { id: 3, name: '运动达人', icon: 'icon-run', type: 'green' },
-            { id: 4, name: '美食探店家', icon: 'icon-food', type: 'orange' }
-        ],
-
         hobbyTags: ['瑜伽', '阅读', '音乐', '理财', '咖啡探店'],
         personalityTags: ['独立', '理性', '自律', '目标感强'],
+        weekendTags: ['探店美食', '宅家追剧', '看书学习', '运动健身'],
 
         lifeScript: {
             name: '事业进阶型',
@@ -345,36 +310,26 @@
 
     // 页面滚动监听
     const onPageScroll = (e) => {
-        scrollTop.value = e.detail.scrollTop
-    }
-
-    // 返回
-    const goBack = () => {
-        uni.navigateBack()
-    }
-
-    // 右上角更多操作
-    const showMoreOps = () => {
-        uni.showActionSheet({
-            itemList: ['分享用户', '复制主页链接'],
-            success: () => { }
-        })
+        // 可用于吸顶等效果
     }
 
     // 喜欢/取消喜欢
     const toggleFollow = () => {
         userInfo.value.isFollowed = !userInfo.value.isFollowed
         uni.showToast({
-            title: userInfo.value.isFollowed ? '喜欢成功' : '已取消喜欢',
+            title: userInfo.value.isFollowed ? '❤️ 已喜欢' : '已取消喜欢',
             icon: 'none'
         })
     }
 
-    // 跳转勋章详情页
-    const goToMedalDetail = (medal) => {
-        uni.navigateTo({
-            url: `/pages/user/medalDetail?id=${medal.id}`
-        })
+    // 跳转人生剧本测试
+    const goToScriptTest = () => {
+        uni.navigateTo({ url: '/pages/test/script' })
+    }
+
+    // 跳转三观态度测试
+    const goToValuesTest = () => {
+        uni.navigateTo({ url: '/pages/test/values' })
     }
 
     // 跳转动态详情
@@ -387,16 +342,6 @@
         uni.showToast({ title: '查看全部动态', icon: 'none' })
     }
 
-    // 查看剧本详情
-    const viewScriptDetail = () => {
-        uni.showToast({ title: '人生剧本详情', icon: 'none' })
-    }
-
-    // 查看契合度
-    const viewMatchDegree = () => {
-        uni.showToast({ title: '查看契合度', icon: 'none' })
-    }
-
     // 相册预览
     const previewAlbum = (index) => {
         uni.previewImage({
@@ -404,6 +349,7 @@
             current: index
         })
     }
+
     const viewAllAlbum = () => {
         uni.showToast({ title: '查看完整相册', icon: 'none' })
     }
@@ -434,179 +380,119 @@
 </script>
 
 <style lang="scss" scoped>
-    @import '@/styles/variables.scss';
-    @import '@/styles/mixins.scss';
+    $bg-page: #F5F6FA;
+    $bg-card: #FFFFFF;
+    $text-primary: #1A1A2E;
+    $text-secondary: #4A4A5A;
+    $text-helper: #9999A8;
+    $border-light: #EEEEF2;
+    $primary-color: #A8B89A;
+    $primary-dark: #8A9B7A;
+    $primary-light: rgba(168, 184, 154, 0.15);
+    $radius-card: 16px;
+    $shadow-card: 0 2px 12px rgba(0, 0, 0, 0.06);
 
     .profile-page {
-        width: 100%;
         min-height: 100vh;
         background-color: $bg-page;
-        position: relative;
     }
 
-
-
-    // ----- 顶部封面：16:9标准比例 -----
-    .profile-cover {
+    // ===== 顶部封面（完整显示 + 毛玻璃底部过渡） =====
+    .cover-section {
         position: relative;
         width: 100%;
         aspect-ratio: 16 / 9;
         overflow: hidden;
+        background: linear-gradient(135deg, #E8ECF1, #D5DCE6);
 
-        &__img {
+        &__image {
             width: 100%;
             height: 100%;
-            background-color: $bg-page;
             display: block;
+            object-fit: cover;
         }
 
-        &__mask {
+        &__glass {
             position: absolute;
             bottom: 0;
             left: 0;
             right: 0;
-            height: 50%;
-            background: linear-gradient(to bottom, rgba(0,0,0,0), rgba($bg-page, 1));
+            height: 16%;
+            background: linear-gradient( to bottom, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.15) 25%, rgba(255, 255, 255, 0.40) 55%, rgba(245, 246, 250, 0.85) 100% );
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
+            pointer-events: none;
         }
     }
 
-    // ----- 主内容区 -----
-    .profile-content {
-        position: relative;
-        z-index: 2;
-        margin-top: -40px;
-        padding: 0 $page-padding-x;
-    }
-
-    // 通用卡片样式
-    .profile-card {
-        background-color: $bg-card;
-        border-radius: $radius-card;
-        padding: $spacing-md;
-        margin-bottom: 12px;
-        box-shadow: $shadow-card;
-
-        &__header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: $spacing-sm;
-        }
-
-        &__title {
-            font-size: $font-size-md;
-            font-weight: $font-weight-medium;
-            color: $text-primary;
-            margin-bottom: $spacing-sm;
-
-            &--second {
-                margin-top: $spacing-md;
-            }
-        }
-
-        &__more {
-            font-size: $font-size-xs;
-            color: $text-helper;
-            display: flex;
-            align-items: center;
-            gap: 2px;
-
-            .icon {
-                font-size: 12px;
-            }
-        }
-    }
-
-    // ----- 基础信息卡片 -----
-    .profile-base-card {
-        padding-top: 30px;
-    }
-
-    .profile-base {
+    // ===== 用户信息（在图片下方） =====
+    .user-info-section {
         display: flex;
-        gap: 12px;
-        margin-top: -50px;
-        margin-bottom: $spacing-sm;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 16px 14px;
+        background: $bg-card;
+        margin: 0 12px;
+        border-radius: $radius-card $radius-card;
+        box-shadow: $shadow-card;
+        position: relative;
+        margin-top: -6px;
+        z-index: 2;
     }
 
-    .profile-base__avatar-wrap {
+    .user-info__avatar-wrap {
         position: relative;
         flex-shrink: 0;
     }
 
-    .profile-base__avatar {
-        width: 72px;
-        height: 72px;
+    .user-info__avatar {
+        width: 64px;
+        height: 64px;
         border-radius: 50%;
-        border: 3px solid $bg-card;
-        background-color: $bg-page;
+        border: 2px solid $bg-card;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
         display: block;
+        background: #fff;
     }
 
-    // 头像认证对勾
-    .avatar-auth-icon {
+    .avatar-auth-badge {
         position: absolute;
-        right: 0;
-        bottom: 2px;
-        width: 18px;
-        height: 18px;
+        right: -2px;
+        bottom: 0px;
+        width: 20px;
+        height: 20px;
         border-radius: 50%;
+        background: linear-gradient(135deg, #A8B89A, #8A9B7A);
+        border: 2px solid $bg-card;
         display: flex;
         align-items: center;
         justify-content: center;
-        border: 2px solid $bg-card;
 
         .icon {
             font-size: 11px;
             color: #FFFFFF;
-            line-height: 1;
-        }
-        // 等级1：仅实名 - 浅绿空心
-        &.auth-level-1 {
-            background-color: transparent;
-            border: 1.5px solid #81D4A0;
-
-            .icon {
-                color: #81D4A0;
-                font-size: 10px;
-            }
-        }
-        // 等级2：实名+学历 - 深绿实心
-        &.auth-level-2 {
-            background-color: #2ED573;
-            border: 2px solid $bg-card;
-        }
-        // 等级3：三重认证 - 香槟金实心
-        &.auth-level-3 {
-            background: linear-gradient(135deg, #FFD700, #FFB74D);
-            border: 2px solid $bg-card;
-            box-shadow: 0 0 6px rgba(255, 183, 77, 0.4);
         }
     }
 
-    .profile-base__info {
+    .user-info__detail {
         flex: 1;
-        padding-top: 32px;
         min-width: 0;
     }
 
-    .profile-base__name-row {
+    .user-info__name-row {
         display: flex;
         align-items: center;
         gap: 6px;
-        margin-bottom: 4px;
-        flex-wrap: wrap;
     }
 
-    .profile-base__name {
+    .user-info__name {
         font-size: 20px;
-        font-weight: $font-weight-medium;
+        font-weight: 700;
         color: $text-primary;
-        line-height: 1.2;
     }
 
-    .profile-base__gender {
-        font-size: 20px;
+    .user-info__gender {
+        font-size: 17px;
         line-height: 1;
 
         &.is-female {
@@ -618,380 +504,487 @@
         }
     }
 
-    .profile-base__meta {
-        font-size: 12px;
-        color: $text-helper;
-        line-height: 1.3;
-    }
-
-    // 关注按钮
-    .follow-btn {
-        padding: 4px 14px;
-        font-size: 12px;
-        color: $primary-color;
-        background-color: $primary-light-bg;
-        border: 1px solid $primary-color;
-        border-radius: 14px;
-        line-height: 1.3;
-        transition: all $duration-fast ease;
-        flex-shrink: 0;
-        margin-left: 2px;
-
-        &:active {
-            opacity: 0.8;
-        }
-
-        &--followed {
-            color: $text-helper;
-            background-color: $bg-page;
-            border-color: $border-light;
-        }
-    }
-
-    // 个人简介
-    .profile-bio {
-        font-size: $font-size-sm;
-        color: $text-secondary;
-        line-height: 1.7;
-        margin-bottom: $spacing-md;
-        padding-bottom: $spacing-md;
-        border-bottom: 1px solid $border-light;
-    }
-
-    // ----- 认证信任标识：一行横向排列 -----
-    .auth-showcase {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .auth-showcase__item {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 10px 8px;
-        border-radius: 12px;
-        background-color: $bg-page;
-        transition: all $duration-fast ease;
-
-        &.is-active {
-            background-color: rgba(46, 213, 115, 0.08);
-
-            .auth-showcase__icon {
-                color: #2ED573;
-            }
-
-            .auth-showcase__status {
-                color: #2E7D32;
-
-                .icon {
-                    color: #2ED573;
-                }
-            }
-        }
-    }
-
-    .auth-showcase__icon {
-        flex-shrink: 0;
-        font-size: 18px;
-        color: $text-helper;
-        line-height: 1;
-    }
-
-    .auth-showcase__text {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        min-width: 0;
-    }
-
-    .auth-showcase__label {
+    .user-info__meta {
         font-size: 13px;
-        color: $text-primary;
-        font-weight: $font-weight-medium;
-        line-height: 1.2;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .auth-showcase__status {
-        display: flex;
-        align-items: center;
-        gap: 2px;
-        font-size: 11px;
         color: $text-helper;
-        line-height: 1;
-        white-space: nowrap; 
-
-        .icon {
-            font-size: 11px;
-            color: $text-helper;
-            line-height: 1;
-            flex-shrink: 0;
-        }
-    }
-
-    // ----- 趣味勋章 -----
-    .fun-medals {
         display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .medal-tag {
-        display: inline-flex;
         align-items: center;
         gap: 4px;
-        padding: 6px 12px;
-        font-size: 12px;
-        border-radius: 12px;
-        white-space: nowrap;
-        flex-shrink: 0;
-        cursor: pointer;
-        transition: all $duration-fast ease;
 
-        &:active {
-            transform: scale(0.96);
-        }
-
-        .icon {
-            font-size: 14px;
-        }
-
-        &--gold {
-            color: #B8860B;
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 183, 77, 0.15));
-            box-shadow: 0 1px 3px rgba(184, 134, 11, 0.15);
-        }
-
-        &--blue {
-            color: #1976D2;
-            background: linear-gradient(135deg, rgba(79, 172, 254, 0.2), rgba(0, 153, 255, 0.1));
-            box-shadow: 0 1px 3px rgba(25, 118, 210, 0.12);
-        }
-
-        &--purple {
-            color: #7B1FA2;
-            background: linear-gradient(135deg, rgba(156, 39, 176, 0.2), rgba(123, 31, 162, 0.1));
-            box-shadow: 0 1px 3px rgba(123, 31, 162, 0.12);
-        }
-
-        &--orange {
-            color: #E65100;
-            background: linear-gradient(135deg, rgba(255, 167, 38, 0.2), rgba(251, 140, 0, 0.1));
-            box-shadow: 0 1px 3px rgba(230, 81, 0, 0.12);
-        }
-
-        &--green {
-            color: #2E7D32;
-            background: linear-gradient(135deg, rgba(46, 213, 115, 0.2), rgba(30, 190, 96, 0.1));
-            box-shadow: 0 1px 3px rgba(46, 125, 50, 0.12);
+        .dot {
+            color: $border-light;
         }
     }
 
-    // ----- 个人资料 -----
-    .match-profile__grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: $spacing-sm 0;
-        margin-bottom: $spacing-md;
-    }
-
-    .match-profile__item {
-        font-size: $font-size-sm;
-        color: $text-secondary;
-        line-height: 1.4;
-    }
-
-    .match-profile__tags {
+    // ===== 认证部分（轻量标签，仅展示） =====
+    .auth-section {
         display: flex;
         gap: 8px;
-        flex-wrap: wrap;
+        padding: 10px 16px 12px;
+        margin: 0 12px;
+        background: $bg-card;
+        border-radius: $radius-card $radius-card;
+        box-shadow: $shadow-card;
+        margin-top: 12px;
+        z-index: 1;
+        position: relative;
+        border-top: 1px solid $border-light;
     }
 
-    // ----- 标签模块 -----
-    .profile-tags {
-        .tags-row {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 8px;
+    .auth-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 12px 4px 8px;
+        border-radius: 14px;
+        font-size: 12px;
+        font-weight: 500;
+        transition: all 0.3s ease;
 
-            &:last-child {
-                margin-bottom: 0;
-            }
-        }
-
-        .tags-label {
-            width: 60px;
+        &__icon {
+            font-size: 12px;
             flex-shrink: 0;
-            font-size: 11px;
-            color: $text-helper;
-            padding-top: 3px;
+            line-height: 1;
         }
 
-        .tags-list {
-            flex: 1;
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
+        &__label {
+            white-space: nowrap;
+            font-size: 11px;
         }
 
-        .tag {
-            padding: 2px 10px;
-            font-size: 11px;
-            border-radius: 10px;
-            line-height: 1.4;
+        &.is-active {
+            background: rgba(168, 184, 154, 0.15);
+            color: #6B8A5E;
 
-            &--hobby {
-                color: $text-secondary;
-                border: 1px solid $border-light;
-                background-color: transparent;
+            .auth-item__icon {
+                color: #6B8A5E;
             }
+        }
 
-            &--personality {
-                color: $text-helper;
-                background-color: $bg-page;
-                font-size: 10px;
-            }
+        &.is-inactive {
+            background: #F0F1F3;
+            color: #B0B0B8;
 
-            &--life {
-                color: $text-secondary;
-                background-color: $bg-page;
-                border: 1px solid $border-light;
-            }
-
-            &--expect {
-                color: $text-secondary;
-                background-color: #F5F1E8;
+            .auth-item__icon {
+                color: #C8C8D0;
             }
         }
     }
 
-    // ----- 人生剧本、三观 -----
-    .profile-script, .profile-values {
-        &__entry {
-            font-size: $font-size-xs;
-            color: $primary-color;
+    // ===== 个人简介 =====
+    .bio-section {
+        margin: 12px 12px 0;
+        padding: 16px 18px;
+        background: $bg-card;
+        border-radius: $radius-card;
+        box-shadow: $shadow-card;
+
+        &__text {
+            font-size: 14px;
+            color: $text-secondary;
+            line-height: 1.8;
+            letter-spacing: 0.3px;
+        }
+    }
+
+    // ===== 标签云 =====
+    .tags-section {
+        margin: 12px 12px 0;
+        padding: 16px 18px;
+        background: $bg-card;
+        border-radius: $radius-card;
+        box-shadow: $shadow-card;
+    }
+
+    .tags-group {
+        &:not(:last-child) {
+            margin-bottom: 14px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid $border-light;
+        }
+
+        &__label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: $text-primary;
+            margin-bottom: 8px;
+        }
+
+        &__list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+    }
+
+    .tag {
+        padding: 4px 14px;
+        font-size: 12px;
+        border-radius: 14px;
+        line-height: 1.4;
+
+        &--hobby {
+            color: #4A4A5A;
+            background: $bg-page;
+            border: 1px solid $border-light;
+        }
+
+        &--personality {
+            color: #6C5B7B;
+            background: rgba(108, 91, 123, 0.08);
+            border: 1px solid rgba(108, 91, 123, 0.12);
+        }
+
+        &--weekend {
+            color: #2D7D7D;
+            background: rgba(45, 125, 125, 0.08);
+            border: 1px solid rgba(45, 125, 125, 0.12);
+        }
+    }
+
+    // ===== 详细资料 =====
+    .detail-card {
+        margin: 12px 12px 0;
+        padding: 16px 18px;
+        background: $bg-card;
+        border-radius: $radius-card;
+        box-shadow: $shadow-card;
+
+        &__title {
+            font-size: 15px;
+            font-weight: 600;
+            color: $text-primary;
+            margin-bottom: 12px;
+        }
+
+        &__grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 16px;
+        }
+    }
+
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba($border-light, 0.5);
+
+        &:nth-last-child(1),
+        &:nth-last-child(2) {
+            border-bottom: none;
+        }
+
+        &__label {
+            font-size: 13px;
+            color: $text-helper;
+        }
+
+        &__value {
+            font-size: 13px;
+            color: $text-primary;
+            font-weight: 500;
+        }
+    }
+
+    // ===== 人生剧本 =====
+    .script-card {
+        margin: 12px 12px 0;
+        padding: 16px 18px;
+        background: linear-gradient(135deg, #F8F9FA, #F0F2F5);
+        border-radius: $radius-card;
+        border: 1px solid rgba($primary-color, 0.2);
+
+        &__header {
             display: flex;
             align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
 
-            .icon {
-                margin-left: 2px;
-                font-size: 12px;
+        &__title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        &__title {
+            font-size: 15px;
+            font-weight: 600;
+            color: $text-primary;
+            flex-shrink: 0;
+        }
+
+        &__badge {
+            padding: 4px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 14px;
+            flex-shrink: 0;
+
+            &.badge--career {
+                color: #1976D2;
+                background: rgba(25, 118, 210, 0.1);
+            }
+
+            &.badge--stable {
+                color: #2E7D32;
+                background: rgba(46, 125, 50, 0.1);
+            }
+
+            &.badge--romantic {
+                color: #C62828;
+                background: rgba(198, 40, 40, 0.08);
+            }
+
+            &.badge--free {
+                color: #6A1B9A;
+                background: rgba(106, 27, 154, 0.08);
             }
         }
-    }
 
-    .match-script__card {
-        padding: $spacing-sm;
-        background: linear-gradient(135deg, rgba(168, 184, 154, 0.1) 0%, rgba(186, 168, 200, 0.1) 100%);
-        border-radius: 12px;
-        border: 1px solid rgba($primary-color, 0.15);
-    }
+        &__entry {
+            font-size: 12px;
+            color: $primary-color;
+            flex-shrink: 0;
+            cursor: pointer;
+            font-weight: 500;
 
-    .match-script__type {
-        display: flex;
-        align-items: baseline;
-        gap: $spacing-xs;
-        margin-bottom: 6px;
-    }
+            &:active {
+                opacity: 0.7;
+            }
+        }
 
-    .match-script__label {
-        font-size: 11px;
-        color: $text-helper;
-    }
+        &__desc {
+            font-size: 13px;
+            color: $text-secondary;
+            line-height: 1.7;
+            display: block;
+            margin-bottom: 10px;
+        }
 
-    .match-script__name {
-        font-size: $font-size-md;
-        font-weight: $font-weight-medium;
-        color: $primary-color;
-    }
-
-    .match-script__desc {
-        font-size: $font-size-xs;
-        color: $text-secondary;
-        line-height: 1.6;
-        margin-bottom: $spacing-sm;
-        display: block;
-    }
-
-    .match-script__tags {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
+        &__tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
     }
 
     .script-tag {
-        padding: 2px 8px;
-        font-size: 10px;
+        padding: 2px 12px;
+        font-size: 11px;
         color: $primary-color;
-        background-color: rgba(255, 255, 255, 0.6);
-        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 10px;
     }
 
-    .match-values__list {
-        display: flex;
-        flex-direction: column;
-        gap: $spacing-sm;
-    }
+    // ===== 三观态度 =====
+    .values-card {
+        margin: 12px 12px 0;
+        padding: 16px 18px;
+        background: $bg-card;
+        border-radius: $radius-card;
+        box-shadow: $shadow-card;
 
-    .match-values__item {
-        display: flex;
-        gap: $spacing-sm;
-    }
+        &__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
 
-    .match-values__label {
-        width: 50px;
-        flex-shrink: 0;
-        font-size: $font-size-sm;
-        color: $text-helper;
-        padding-top: 1px;
-    }
+        &__title {
+            font-size: 15px;
+            font-weight: 600;
+            color: $text-primary;
+        }
 
-    .match-values__text {
-        flex: 1;
-        font-size: $font-size-sm;
-        color: $text-secondary;
-        line-height: 1.5;
-    }
+        &__entry {
+            font-size: 12px;
+            color: $primary-color;
+            flex-shrink: 0;
+            cursor: pointer;
+            font-weight: 500;
 
-    .match-expect__tags {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
+            &:active {
+                opacity: 0.7;
+            }
+        }
 
-    // ----- 相册网格：微信同款正方形 -----
-    .album-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 4px;
-    }
-
-    .album-grid__item {
-        width: 100%;
-        aspect-ratio: 1;
-        border-radius: 4px;
-        background-color: $bg-page;
-        cursor: pointer;
-        display: block;
-
-        &:active {
-            opacity: 0.85;
+        &__list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
     }
 
-    // ----- Ta的动态网格 -----
-    .post-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 6px;
+    .value-item {
+        display: flex;
+        gap: 12px;
+        padding: 8px 0;
+        border-bottom: 1px solid $border-light;
+
+        &:last-child {
+            border-bottom: none;
+        }
+
+        &__label {
+            width: 48px;
+            flex-shrink: 0;
+            font-size: 13px;
+            color: $text-helper;
+            padding-top: 1px;
+        }
+
+        &__text {
+            flex: 1;
+            font-size: 13px;
+            color: $text-secondary;
+            line-height: 1.5;
+        }
     }
 
-    .post-grid__item {
+    // ===== 期待的另一半 =====
+    .expect-card {
+        margin: 12px 12px 0;
+        padding: 16px 18px;
+        background: linear-gradient(135deg, #FFF8F0, #FFF0E8);
+        border-radius: $radius-card;
+        border: 1px solid rgba(255, 183, 77, 0.2);
+
+        &__title {
+            font-size: 15px;
+            font-weight: 600;
+            color: $text-primary;
+            margin-bottom: 10px;
+        }
+
+        &__tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+    }
+
+    .expect-tag {
+        padding: 5px 14px;
+        font-size: 12px;
+        color: #E65100;
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 14px;
+        border: 1px solid rgba(255, 183, 77, 0.3);
+    }
+
+    // ===== 相册 =====
+    .album-card {
+        margin: 12px 12px 0;
+        padding: 16px 18px;
+        background: $bg-card;
+        border-radius: $radius-card;
+        box-shadow: $shadow-card;
+
+        &__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        &__title {
+            font-size: 15px;
+            font-weight: 600;
+            color: $text-primary;
+        }
+
+        &__count {
+            font-size: 12px;
+            color: $text-helper;
+        }
+
+        &__grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            position: relative;
+        }
+
+        &__item {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 6px;
+            background: $bg-page;
+            cursor: pointer;
+
+            &:active {
+                opacity: 0.85;
+            }
+        }
+
+        &__more {
+            position: absolute;
+            right: 4px;
+            bottom: 4px;
+            width: calc(33.33% - 4px);
+            aspect-ratio: 1;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #FFFFFF;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+
+            &:active {
+                opacity: 0.8;
+            }
+        }
+    }
+
+    // ===== 动态 =====
+    .post-card {
+        margin: 12px 12px 0;
+        padding: 16px 18px;
+        background: $bg-card;
+        border-radius: $radius-card;
+        box-shadow: $shadow-card;
+
+        &__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        &__title {
+            font-size: 15px;
+            font-weight: 600;
+            color: $text-primary;
+        }
+
+        &__more {
+            font-size: 12px;
+            color: $primary-color;
+            cursor: pointer;
+
+            &:active {
+                opacity: 0.7;
+            }
+        }
+
+        &__grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+    }
+
+    .post-item {
         position: relative;
         aspect-ratio: 1;
         border-radius: 8px;
@@ -1001,62 +994,58 @@
         &:active {
             opacity: 0.85;
         }
-    }
 
-    .post-grid__img {
-        width: 100%;
-        height: 100%;
-        background-color: $bg-page;
-    }
+        &__image {
+            width: 100%;
+            height: 100%;
+            background: $bg-page;
+        }
 
-    // 精选角标
-    .post-grid__badge {
-        position: absolute;
-        top: 4px;
-        right: 4px;
-        display: inline-flex;
-        align-items: center;
-        gap: 2px;
-        padding: 1px 6px;
-        font-size: 9px;
-        color: #FFFFFF;
-        background: linear-gradient(90deg, #FFB74D, #FF9800);
-        border-radius: 8px;
+        &__overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 8px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent);
+        }
 
-        .icon {
+        &__stats {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #FFFFFF;
+            font-size: 11px;
+
+            .icon {
+                font-size: 13px;
+            }
+        }
+
+        &__badge {
+            padding: 1px 8px;
             font-size: 9px;
+            color: #FFFFFF;
+            background: linear-gradient(90deg, #FFB74D, #FF9800);
+            border-radius: 8px;
         }
     }
 
-    .post-grid__info {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        padding: 4px 6px;
-        display: flex;
-        align-items: center;
-        gap: 3px;
-        font-size: 10px;
-        color: #FFFFFF;
-        background: linear-gradient(to top, rgba(0,0,0,0.4), transparent);
-
-        .icon {
-            font-size: 12px;
-        }
-    }
-
-    // ----- 底部信息栏 -----
+    // ===== 底部信息栏 =====
     .profile-footer {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 16px $page-padding-x;
-        font-size: 11px;
+        padding: 14px 18px;
+        margin: 12px 12px 0;
+        font-size: 12px;
         color: $text-helper;
-        background-color: $bg-card;
+        background: $bg-card;
         border-radius: $radius-card;
-        margin-bottom: 12px;
+        box-shadow: $shadow-card;
 
         &__ip {
             color: $text-helper;
@@ -1082,8 +1071,45 @@
         }
     }
 
-    // 底部占位
-    .profile-bottom-placeholder {
-        height: 20px;
+    // ===== 底部占位 =====
+    .bottom-placeholder {
+        height: 10px;
+    }
+
+    // ===== 喜欢悬浮按钮（右下角） =====
+    .like-fab {
+        position: fixed;
+        bottom: 80px;
+        right: 16px;
+        width: 56px;
+        height: 56px;
+        background: rgba(200, 200, 210, 0.6);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+
+        &:active {
+            transform: scale(0.88);
+        }
+
+        &--active {
+            background: linear-gradient(135deg, #FF6B81, #FF4757);
+            box-shadow: 0 4px 20px rgba(255, 71, 87, 0.4);
+            border: none;
+        }
+
+        &__icon {
+            font-size: 28px;
+            line-height: 1;
+            transition: all 0.3s ease;
+        }
     }
 </style>

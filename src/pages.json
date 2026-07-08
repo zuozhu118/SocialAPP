@@ -182,8 +182,14 @@
         "navigationStyle": "custom",
         "navigationBarTitleText": "我的申请"
       }
+    },
+    {
+      "path": "pages/profile/myProfile",
+      "style": {
+        "navigationBarTitleText": "个人主页",
+        "navigationStyle": "custom"
+      }
     }
-
 
 
   ],

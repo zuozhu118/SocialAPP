@@ -3,59 +3,47 @@
         <!-- 个人信息头部 -->
         <view class="profile-header">
             <view class="profile-header__main">
-                <view class="profile-header__avatar-wrap">
+                <view class="profile-header__avatar-wrap" @click="goToMyProfile">
                     <image class="profile-header__avatar"
-                           src="https://picsum.photos/200/200?random=30"
+                           :src="userInfo.avatar"
                            mode="aspectFill" />
-                    <!-- 认证等级对勾，和他人页规则统一 -->
-                    <view class="avatar-auth-icon" :class="'auth-level-' + getAuthLevel(authStatus)" v-if="authStatus.realName">
+                    <view class="avatar-auth-icon" :class="'auth-level-' + getAuthLevel()" v-if="authStatus.realName">
                         <text class="icon icon-check"></text>
                     </view>
                 </view>
 
-                <view class="profile-header__info">
+                <view class="profile-header__info" @click="goToMyProfile">
                     <view class="profile-header__name-row">
-                        <text class="profile-header__name">小鹿同学</text>
-                        <text class="profile-header__edit" @click="goToMyProfile">
-                            编辑资料 <text class="icon icon-arrow-right"></text>
-                        </text>
+                        <text class="profile-header__name">{{ userInfo.nickname }}</text>
+                        <text class="profile-header__hint">主页 ></text>
                     </view>
-                    <!-- 平台ID -->
                     <text class="profile-header__id">ID：{{ userId }}</text>
                 </view>
             </view>
 
-            <!-- 认证状态区：明确文字标注，三列横向排列 -->
+            <!-- 认证状态区 -->
             <view class="auth-status-card">
                 <view class="auth-status__item" :class="{ 'is-active': authStatus.realName }" @click="goToRealNameAuth">
                     <text class="auth-status__icon icon icon-id-card"></text>
                     <view class="auth-status__text">
-                        <text class="auth-status__label">实名认证</text>
+                        <text class="auth-status__label">身份</text>
                         <text class="auth-status__value">{{ authStatus.realName ? '已认证' : '去认证' }}</text>
                     </view>
                 </view>
                 <view class="auth-status__item" :class="{ 'is-active': authStatus.education }" @click="goToEducationAuth">
                     <text class="auth-status__icon icon icon-graduation"></text>
                     <view class="auth-status__text">
-                        <text class="auth-status__label">学历认证</text>
+                        <text class="auth-status__label">学历</text>
                         <text class="auth-status__value">{{ authStatus.education ? '已认证' : '去认证' }}</text>
                     </view>
                 </view>
                 <view class="auth-status__item" :class="{ 'is-active': authStatus.work }" @click="goToWorkAuth">
                     <text class="auth-status__icon icon icon-briefcase"></text>
                     <view class="auth-status__text">
-                        <text class="auth-status__label">工作认证</text>
+                        <text class="auth-status__label">单位</text>
                         <text class="auth-status__value">{{ authStatus.work ? '已认证' : '去认证' }}</text>
                     </view>
                 </view>
-            </view>
-
-            <!-- 资料完善度 -->
-            <view class="profile-progress" @click="goToMyProfile">
-                <view class="profile-progress__bar">
-                    <view class="profile-progress__fill" :style="{ width: profileProgress + '%' }"></view>
-                </view>
-                <text class="profile-progress__text">资料完善度 {{ profileProgress }}%，完善后匹配更精准</text>
             </view>
         </view>
 
@@ -77,7 +65,7 @@
             </view>
         </view>
 
-        <!-- 我的申请入口（新增） -->
+        <!-- 功能入口 -->
         <view class="entry-card">
             <view class="entry-card__item" @click="goToMyApply">
                 <view class="entry-card__icon entry-card__icon--blue">
@@ -92,10 +80,7 @@
                 </view>
                 <text class="entry-card__arrow icon icon-arrow-right"></text>
             </view>
-        </view>
 
-        <!-- 我的勋章入口 -->
-        <view class="entry-card">
             <view class="entry-card__item" @click="goToMedalWall">
                 <view class="entry-card__icon entry-card__icon--purple">
                     <text class="icon icon-medal"></text>
@@ -142,386 +127,346 @@
             </view>
         </view>
 
-        <!-- 底部占位 -->
         <view class="page-bottom-placeholder"></view>
     </view>
 </template>
 
 <script setup>
-    import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 
-    // ===== 状态数据 =====
-    const userId = ref('10086520') // 平台唯一ID
-    const applyPendingCount = ref(2) // 待处理的申请数量（收到的待处理）
+const userId = ref('10086520')
+const applyPendingCount = ref(2)
 
-    const authStatus = ref({
-        realName: true,
-        education: false,
-        work: false
-    })
-    const profileProgress = ref(75)
+const userInfo = ref({
+    avatar: 'https://picsum.photos/200/200?random=30',
+    nickname: '小鹿同学'
+})
 
-    // 核心统计数据
-    const likeSendCount = ref(12)
-    const likeReceiveCount = ref(8)
-    const visitorCount = ref(26)
-    const medalCount = ref(4)
+const authStatus = ref({
+    realName: true,
+    education: false,
+    work: false
+})
 
-    // 认证等级计算，和他人页规则统一
-    const getAuthLevel = (auth) => {
-        let level = 0
-        if (auth.realName) level = 1
-        if (auth.realName && auth.education) level = 2
-        if (auth.realName && auth.education && auth.work) level = 3
-        return level
-    }
+const likeSendCount = ref(12)
+const likeReceiveCount = ref(8)
+const visitorCount = ref(26)
+const medalCount = ref(4)
 
-    // ===== 跳转方法 =====
-    // 跳转自己的个人主页（编辑资料）
-    const goToMyProfile = () => {
-        uni.navigateTo({ url: '/pages/profile/edit' })
-    }
+const getAuthLevel = () => {
+    const auth = authStatus.value
+    let level = 0
+    if (auth.realName) level = 1
+    if (auth.realName && auth.education) level = 2
+    if (auth.realName && auth.education && auth.work) level = 3
+    return level
+}
 
-    // 认证页面跳转
-    const goToRealNameAuth = () => {
-        uni.navigateTo({ url: '/pages/auth/realname' })
-    }
-    const goToEducationAuth = () => {
-        uni.navigateTo({ url: '/pages/auth/education' })
-    }
-    const goToWorkAuth = () => {
-        uni.navigateTo({ url: '/pages/auth/work' })
-    }
+// 跳转个人主页
+const goToMyProfile = () => {
+    uni.navigateTo({ url: '/pages/profile/myProfile' })
+}
 
-    // 喜欢/访客列表
-    const goToLikeList = (type) => {
-        uni.navigateTo({ url: `/pages/user/likeList?type=${type}` })
-    }
-    const goToVisitorList = () => {
-        uni.navigateTo({ url: '/pages/user/visitorList' })
-    }
-    const goToMyApply = () => {
-        uni.navigateTo({ url: '/pages/match/myApply' })
-    }
-    // 勋章墙
-    const goToMedalWall = () => {
-        uni.navigateTo({ url: '/pages/user/medalWall' })
-    }
+const goToRealNameAuth = () => {
+    uni.navigateTo({ url: '/pages/auth/realname' })
+}
+const goToEducationAuth = () => {
+    uni.navigateTo({ url: '/pages/auth/education' })
+}
+const goToWorkAuth = () => {
+    uni.navigateTo({ url: '/pages/auth/work' })
+}
 
-    // 其他页面跳转
-    const goToSettings = () => {
-        uni.navigateTo({ url: '/pages/profile/settings' })
-    }
-    const goToEquity = () => {
-        uni.navigateTo({ url: '/pages/profile/equity' })
-    }
-    const goToPrivacy = () => {
-        uni.navigateTo({ url: '/pages/profile/privacy' })
-    }
-    const goToAntiFraud = () => {
-        uni.navigateTo({ url: '/pages/common/antiFraud' })
-    }
-    const goToSafetyCenter = () => {
-        uni.showToast({ title: '安全中心开发中', icon: 'none' })
-    }
-    const handleFeedback = () => {
-        uni.navigateTo({ url: '/pages/common/feedback' })
-    }
+const goToLikeList = (type) => {
+    uni.navigateTo({ url: `/pages/user/likeList?type=${type}` })
+}
+const goToVisitorList = () => {
+    uni.navigateTo({ url: '/pages/user/visitorList' })
+}
+const goToMyApply = () => {
+    uni.navigateTo({ url: '/pages/match/myApply' })
+}
+const goToMedalWall = () => {
+    uni.navigateTo({ url: '/pages/user/medalWall' })
+}
 
-    // 模拟获取待处理申请数量
-    const fetchApplyPendingCount = () => {
-        // 实际项目中从接口获取
-        // 这里模拟从本地存储或接口获取
-        applyPendingCount.value = 2
-    }
-
-    onMounted(() => {
-        fetchApplyPendingCount()
-    })
+const goToSettings = () => {
+    uni.navigateTo({ url: '/pages/profile/settings' })
+}
+const goToEquity = () => {
+    uni.navigateTo({ url: '/pages/profile/equity' })
+}
+const goToPrivacy = () => {
+    uni.navigateTo({ url: '/pages/profile/privacy' })
+}
+const goToAntiFraud = () => {
+    uni.navigateTo({ url: '/pages/common/antiFraud' })
+}
+const goToSafetyCenter = () => {
+    uni.showToast({ title: '安全中心开发中', icon: 'none' })
+}
+const handleFeedback = () => {
+    uni.navigateTo({ url: '/pages/common/feedback' })
+}
 </script>
 
 <style lang="scss" scoped>
-    @import '@/styles/variables.scss';
-    @import '@/styles/mixins.scss';
+$bg-page: #F5F6FA;
+$bg-card: #FFFFFF;
+$text-primary: #1A1A2E;
+$text-secondary: #4A4A5A;
+$text-helper: #9999A8;
+$border-light: #EEEEF2;
+$primary-color: #A8B89A;
+$primary-dark: #8A9B7A;
+$primary-light: rgba(168, 184, 154, 0.12);
+$radius-card: 16px;
+$shadow-card: 0 2px 12px rgba(0, 0, 0, 0.05);
 
-    .profile-page {
-        min-height: 100vh;
-        background-color: $bg-page;
+.profile-page {
+    min-height: 100vh;
+    background-color: $bg-page;
+}
+
+// ----- 个人信息头部 -----
+.profile-header {
+    background-color: $bg-card;
+    padding: 20px 16px 16px;
+    margin-bottom: 12px;
+}
+
+.profile-header__main {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.profile-header__avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.profile-header__avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background-color: $bg-page;
+    border: 2px solid $bg-card;
+    box-shadow: $shadow-card;
+    display: block;
+}
+
+.avatar-auth-icon {
+    position: absolute;
+    right: 0;
+    bottom: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid $bg-card;
+
+    .icon {
+        font-size: 10px;
+        color: #FFFFFF;
+        line-height: 1;
     }
 
-    // ----- 个人信息头部 -----
-    .profile-header {
-        background-color: $bg-card;
-        padding: $spacing-lg $page-padding-x $spacing-md;
-        margin-bottom: 12px;
-    }
-
-    .profile-header__main {
-        display: flex;
-        gap: 14px;
-        align-items: center;
-        margin-bottom: $spacing-md;
-    }
-
-    .profile-header__avatar-wrap {
-        position: relative;
-        flex-shrink: 0;
-    }
-
-    .profile-header__avatar {
-        width: 72px;
-        height: 72px;
-        border-radius: 50%;
-        background-color: $bg-page;
-        border: 2px solid $bg-card;
-        box-shadow: $shadow-card;
-        display: block;
-    }
-
-    // 头像认证对勾，和他人页完全统一
-    .avatar-auth-icon {
-        position: absolute;
-        right: 0;
-        bottom: 2px;
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 2px solid $bg-card;
-
+    &.auth-level-1 {
+        background-color: transparent;
+        border: 1.5px solid #81D4A0;
         .icon {
-            font-size: 11px;
-            color: #FFFFFF;
-            line-height: 1;
-        }
-
-        &.auth-level-1 {
-            background-color: transparent;
-            border: 1.5px solid #81D4A0;
-            .icon {
-                color: #81D4A0;
-                font-size: 10px;
-            }
-        }
-
-        &.auth-level-2 {
-            background-color: #2ED573;
-            border: 2px solid $bg-card;
-        }
-
-        &.auth-level-3 {
-            background: linear-gradient(135deg, #FFD700, #FFB74D);
-            border: 2px solid $bg-card;
-            box-shadow: 0 0 6px rgba(255, 183, 77, 0.4);
+            color: #81D4A0;
+            font-size: 9px;
         }
     }
 
-    .profile-header__info {
-        flex: 1;
-        min-width: 0;
+    &.auth-level-2 {
+        background-color: #2ED573;
+        border: 2px solid $bg-card;
     }
 
-    .profile-header__name-row {
+    &.auth-level-3 {
+        background: linear-gradient(135deg, #FFD700, #FFB74D);
+        border: 2px solid $bg-card;
+        box-shadow: 0 0 6px rgba(255, 183, 77, 0.4);
+    }
+}
+
+.profile-header__info {
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.profile-header__name-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2px;
+}
+
+.profile-header__name {
+    font-size: 19px;
+    font-weight: 600;
+    color: $text-primary;
+    line-height: 1.2;
+}
+
+.profile-header__hint {
+    font-size: 12px;
+    color: $primary-color;
+    font-weight: 500;
+
+    &:active {
+        opacity: 0.7;
+    }
+}
+
+.profile-header__id {
+    font-size: 12px;
+    color: $text-helper;
+    display: block;
+}
+
+// 认证状态
+.auth-status-card {
+    display: flex;
+    gap: 8px;
+}
+
+.auth-status__item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 8px;
+    border-radius: 10px;
+    background-color: $bg-page;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:active {
+        transform: scale(0.98);
+    }
+
+    &.is-active {
+        background-color: rgba(46, 213, 115, 0.08);
+
+        .auth-status__icon {
+            color: #2ED573;
+        }
+
+        .auth-status__value {
+            color: #2E7D32;
+        }
+    }
+}
+
+.auth-status__icon {
+    flex-shrink: 0;
+    font-size: 17px;
+    color: $text-helper;
+}
+
+.auth-status__text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.auth-status__label {
+    font-size: 12px;
+    color: $text-primary;
+    line-height: 1.2;
+}
+
+.auth-status__value {
+    font-size: 11px;
+    color: $primary-color;
+    font-weight: 400;
+    line-height: 1.2;
+}
+
+// ----- 统计卡 -----
+.stats-card {
+    display: flex;
+    align-items: center;
+    background-color: $bg-card;
+    margin: 0 16px 12px;
+    border-radius: $radius-card;
+    padding: 14px 0;
+    box-shadow: $shadow-card;
+}
+
+.stats-card__item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+
+    &:active {
+        opacity: 0.7;
+    }
+}
+
+.stats-card__num {
+    font-size: 20px;
+    font-weight: 600;
+    color: $text-primary;
+    line-height: 1.2;
+}
+
+.stats-card__label {
+    font-size: 12px;
+    color: $text-helper;
+}
+
+.stats-card__divider {
+    width: 1px;
+    height: 30px;
+    background-color: $border-light;
+}
+
+// ----- 入口卡片 -----
+.entry-card {
+    background-color: $bg-card;
+    margin: 0 16px 12px;
+    border-radius: $radius-card;
+    overflow: hidden;
+    box-shadow: $shadow-card;
+
+    &__item {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        margin-bottom: 4px;
-    }
-
-    .profile-header__name {
-        font-size: 20px;
-        font-weight: $font-weight-medium;
-        color: $text-primary;
-        line-height: 1.2;
-    }
-
-    .profile-header__edit {
-        display: flex;
-        align-items: center;
-        gap: 2px;
-        font-size: 12px;
-        color: $primary-color;
+        padding: 14px 16px;
         cursor: pointer;
 
-        .icon {
-            font-size: 11px;
+        &:not(:last-child) {
+            border-bottom: 1px solid $border-light;
         }
-
-        &:active {
-            opacity: 0.7;
-        }
-    }
-
-    .profile-header__id {
-        font-size: 12px;
-        color: $text-helper;
-        display: block;
-    }
-
-    // ----- 认证状态卡片 -----
-    .auth-status-card {
-        display: flex;
-        gap: 8px;
-        margin-bottom: $spacing-md;
-    }
-
-    .auth-status__item {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 8px;
-        border-radius: 10px;
-        background-color: $bg-page;
-        cursor: pointer;
-        transition: all $duration-fast ease;
-
-        &:active {
-            transform: scale(0.98);
-        }
-
-        &.is-active {
-            background-color: rgba(46, 213, 115, 0.08);
-
-            .auth-status__icon {
-                color: #2ED573;
-            }
-
-            .auth-status__value {
-                color: #2E7D32;
-            }
-        }
-    }
-
-    .auth-status__icon {
-        flex-shrink: 0;
-        font-size: 18px;
-        color: $text-helper;
-    }
-
-    .auth-status__text {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-    }
-
-    .auth-status__label {
-        font-size: 12px;
-        color: $text-primary;
-        line-height: 1.2;
-    }
-
-    .auth-status__value {
-        font-size: 11px;
-        color: $primary-color;
-        font-weight: $font-weight-regular;
-        line-height: 1.2;
-    }
-
-    // 资料完善度
-    .profile-progress {
-        cursor: pointer;
-
-        &:active {
-            opacity: 0.8;
-        }
-
-        &__bar {
-            width: 100%;
-            height: 4px;
-            background-color: $bg-page;
-            border-radius: 2px;
-            overflow: hidden;
-            margin-bottom: 6px;
-        }
-
-        &__fill {
-            height: 100%;
-            background: linear-gradient(90deg, $primary-color, $primary-dark);
-            border-radius: 2px;
-            transition: width $duration-slow ease;
-        }
-
-        &__text {
-            font-size: 11px;
-            color: $text-helper;
-        }
-    }
-
-    // ----- 核心数据统计卡 -----
-    .stats-card {
-        display: flex;
-        align-items: center;
-        background-color: $bg-card;
-        margin: 0 $page-padding-x 12px;
-        border-radius: $radius-card;
-        padding: $spacing-md 0;
-        box-shadow: $shadow-card;
-    }
-
-    .stats-card__item {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 4px;
-        cursor: pointer;
-
-        &:active {
-            opacity: 0.7;
-        }
-    }
-
-    .stats-card__num {
-        font-size: 20px;
-        font-weight: $font-weight-medium;
-        color: $text-primary;
-        line-height: 1.2;
-    }
-
-    .stats-card__label {
-        font-size: 12px;
-        color: $text-helper;
-    }
-
-    .stats-card__divider {
-        width: 1px;
-        height: 32px;
-        background-color: $border-light;
-    }
-
-    // ----- 勋章入口卡片 -----
-    .entry-card {
-        background-color: $bg-card;
-        margin: 0 $page-padding-x 12px;
-        border-radius: $radius-card;
-        overflow: hidden;
-        box-shadow: $shadow-card;
-    }
-
-    .entry-card__item {
-        display: flex;
-        align-items: center;
-        padding: 14px $spacing-md;
-        cursor: pointer;
 
         &:active {
             background-color: $bg-page;
         }
     }
 
-    .entry-card__icon {
+    &__icon {
         width: 36px;
         height: 36px;
         border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-right: $spacing-sm;
+        margin-right: 12px;
         flex-shrink: 0;
 
         .icon {
@@ -532,160 +477,93 @@
         &--purple {
             background: linear-gradient(135deg, #9C27B0, #7B1FA2);
         }
+
+        &--blue {
+            background: linear-gradient(135deg, #4FACFE, #0099FF);
+        }
     }
 
-    .entry-card__info {
+    &__info {
         flex: 1;
         min-width: 0;
     }
 
-    .entry-card__title {
+    &__title {
         display: block;
-        font-size: $font-size-sm;
-        font-weight: $font-weight-medium;
+        font-size: 14px;
+        font-weight: 500;
         color: $text-primary;
-        margin-bottom: 2px;
     }
 
-    .entry-card__sub {
+    &__sub {
         display: block;
         font-size: 11px;
         color: $text-helper;
     }
 
-    .entry-card__arrow {
-        font-size: 12px;
-        color: $text-helper;
-    }
-
-    // ----- 工具菜单 -----
-    .menu-card {
-        background-color: $bg-card;
-        margin: 0 $page-padding-x 12px;
-        border-radius: $radius-card;
-        overflow: hidden;
-        box-shadow: $shadow-card;
-    }
-
-    .menu-card__item {
-        display: flex;
-        align-items: center;
-        padding: 14px $spacing-md;
-        border-bottom: 1px solid $border-light;
-        cursor: pointer;
-
-        &:last-child {
-            border-bottom: none;
-        }
-
-        &:active {
-            background-color: $bg-page;
-        }
-    }
-
-    .menu-card__icon {
-        font-size: 18px;
-        color: $text-secondary;
-        margin-right: $spacing-sm;
-    }
-
-    .menu-card__label {
-        flex: 1;
-        font-size: $font-size-sm;
-        color: $text-primary;
-    }
-
-    .menu-card__arrow {
-        font-size: 12px;
-        color: $text-helper;
-    }
-
-    // 底部占位
-    .page-bottom-placeholder {
+    &__badge {
+        min-width: 20px;
         height: 20px;
+        padding: 0 6px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #FFFFFF;
+        background-color: #FF4757;
+        border-radius: 10px;
+        line-height: 20px;
+        text-align: center;
+        margin-right: 8px;
     }
 
-    // 新增：entry-card 徽标
-    .entry-card {
-        background-color: $bg-card;
-        margin: 0 $page-padding-x 12px;
-        border-radius: $radius-card;
-        overflow: hidden;
-        box-shadow: $shadow-card;
+    &__arrow {
+        font-size: 12px;
+        color: $text-helper;
+    }
+}
 
-        &__item {
-            display: flex;
-            align-items: center;
-            padding: 14px $spacing-md;
-            cursor: pointer;
-            position: relative;
+// ----- 菜单卡片 -----
+.menu-card {
+    background-color: $bg-card;
+    margin: 0 16px 12px;
+    border-radius: $radius-card;
+    overflow: hidden;
+    box-shadow: $shadow-card;
+}
 
-            &:active {
-                background-color: $bg-page;
-            }
-        }
+.menu-card__item {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid $border-light;
+    cursor: pointer;
 
-        &__icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: $spacing-sm;
-            flex-shrink: 0;
-
-            .icon {
-                font-size: 18px;
-                color: #FFFFFF;
-            }
-
-            &--purple {
-                background: linear-gradient(135deg, #9C27B0, #7B1FA2);
-            }
-
-            &--blue {
-                background: linear-gradient(135deg, #4FACFE, #0099FF);
-            }
-        }
-
-        &__info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        &__title {
-            display: block;
-            font-size: $font-size-sm;
-            font-weight: $font-weight-medium;
-            color: $text-primary;
-            margin-bottom: 2px;
-        }
-
-        &__sub {
-            display: block;
-            font-size: 11px;
-            color: $text-helper;
-        }
-
-        &__badge {
-            min-width: 20px;
-            height: 20px;
-            padding: 0 6px;
-            font-size: 11px;
-            font-weight: $font-weight-medium;
-            color: #FFFFFF;
-            background-color: #FF4757;
-            border-radius: 10px;
-            line-height: 20px;
-            text-align: center;
-            margin-right: 8px;
-        }
-
-        &__arrow {
-            font-size: 12px;
-            color: $text-helper;
-        }
+    &:last-child {
+        border-bottom: none;
     }
 
+    &:active {
+        background-color: $bg-page;
+    }
+}
+
+.menu-card__icon {
+    font-size: 18px;
+    color: $text-secondary;
+    margin-right: 12px;
+}
+
+.menu-card__label {
+    flex: 1;
+    font-size: 14px;
+    color: $text-primary;
+}
+
+.menu-card__arrow {
+    font-size: 12px;
+    color: $text-helper;
+}
+
+.page-bottom-placeholder {
+    height: 20px;
+}
 </style>
