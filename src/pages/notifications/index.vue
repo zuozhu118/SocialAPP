@@ -1,4 +1,3 @@
-<!-- pages/notifications/index.vue -->
 <template>
     <view class="notify-page">
         <!-- 导航栏 -->
@@ -134,9 +133,10 @@
             desc: '张一晨 同意了你的微信申请，微信号已互相展示',
             time: '3小时前',
             isRead: true,
-            actionText: '查看资料',
-            actionType: 'view_profile',
-            targetId: 4
+            actionText: '查看结果',
+            actionType: 'apply_result_agreed',
+            targetId: 4,
+            targetName: '张一晨'
         },
         {
             id: 5,
@@ -164,10 +164,24 @@
             actionType: 'reply_comment',
             targetId: 102
         },
+        {
+            id: 7,
+            type: 'interact',
+            icon: '❌',
+            bgColor: '#FFEBEE',
+            title: '微信申请已拒绝',
+            desc: '陈橘子 拒绝了你的微信申请',
+            time: '30分钟前',
+            isRead: false,
+            actionText: '查看结果',
+            actionType: 'apply_result_rejected',
+            targetId: 2,
+            targetName: '陈橘子'
+        },
 
         // ===== 系统类 =====
         {
-            id: 7,
+            id: 8,
             type: 'system',
             icon: '🎖️',
             bgColor: '#E8F5E9',
@@ -180,7 +194,7 @@
             targetId: 1
         },
         {
-            id: 8,
+            id: 9,
             type: 'system',
             icon: '📢',
             bgColor: '#FFF8E1',
@@ -193,7 +207,7 @@
             targetId: null
         },
         {
-            id: 9,
+            id: 10,
             type: 'system',
             icon: '✨',
             bgColor: '#E3F2FD',
@@ -206,7 +220,7 @@
             targetId: 103
         },
         {
-            id: 10,
+            id: 11,
             type: 'system',
             icon: '✅',
             bgColor: '#E8F5E9',
@@ -270,6 +284,14 @@
                 break
             case 'handle_apply':
                 uni.navigateTo({ url: `/pages/match/apply?userId=${item.targetId}&type=handle` })
+                break
+            case 'apply_result_agreed':
+                // 跳转到 apply 页面，直接显示已同意状态
+                uni.navigateTo({ url: `/pages/match/apply?userId=${item.targetId}&result=agreed` })
+                break
+            case 'apply_result_rejected':
+                // 跳转到 apply 页面，直接显示已拒绝状态
+                uni.navigateTo({ url: `/pages/match/apply?userId=${item.targetId}&result=rejected` })
                 break
             case 'view_medal':
                 uni.navigateTo({ url: `/pages/user/medalWall` })

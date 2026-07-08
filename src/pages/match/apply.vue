@@ -1,4 +1,3 @@
-<!-- pages/match/apply.vue -->
 <template>
     <view class="apply-page">
         <!-- 导航栏 -->
@@ -8,8 +7,8 @@
             <view class="apply-navbar__placeholder"></view>
         </view>
 
-        <!-- 用户信息卡片 - 已申请/已同意/已拒绝时隐藏 -->
-        <view class="apply-user-card" v-if="userInfo && !isApplied && !isAgreed && !isRejected">
+        <!-- 用户信息卡片 - 始终显示，点击跳转个人主页 -->
+        <view class="apply-user-card" v-if="userInfo" @click="goToProfile">
             <view class="apply-user-card__avatar-wrap">
                 <image class="apply-user-card__avatar" :src="userInfo.avatar" mode="aspectFill" />
                 <view class="apply-user-card__auth" v-if="userInfo.auth.realName">
@@ -136,12 +135,14 @@
 
     const userId = ref('')
     const applyType = ref('')
+    const resultStatus = ref('') // 'agreed' | 'rejected' | ''
 
     onMounted(() => {
         const pages = getCurrentPages()
         const currentPage = pages[pages.length - 1]
         userId.value = currentPage.options.userId || ''
         applyType.value = currentPage.options.type || ''
+        resultStatus.value = currentPage.options.result || '' // 新增：直接进入结果状态
         loadData()
     })
 
@@ -160,7 +161,7 @@
     const myWechat = ref('xiaolu_2024')
 
     const userInfo = ref({
-        id: 1,
+        id: 4,
         name: '林小鹿',
         gender: 'female',
         age: 24,
@@ -174,6 +175,9 @@
     const otherGreeting = ref('你好呀，觉得我们很合适，想进一步了解你')
 
     const pageTitle = computed(() => {
+        if (resultStatus.value === 'agreed' || resultStatus.value === 'rejected') {
+            return '申请详情'
+        }
         return applyType.value === 'handle' ? '处理申请' : '申请微信'
     })
 
@@ -188,6 +192,42 @@
     const loadData = () => {
         loading.value = true
         setTimeout(() => {
+            // 处理直接从结果状态进入
+            if (resultStatus.value === 'agreed') {
+                isAgreed.value = true
+                otherWechat.value = 'linxiaolu_2024'
+                // 模拟加载用户信息
+                userInfo.value = {
+                    id: 4,
+                    name: '林小鹿',
+                    gender: 'female',
+                    age: 24,
+                    occupation: '产品经理',
+                    district: '朝阳区',
+                    avatar: 'https://picsum.photos/200/200?random=101',
+                    auth: { realName: true, education: true, work: false }
+                }
+                loading.value = false
+                return
+            }
+
+            if (resultStatus.value === 'rejected') {
+                isRejected.value = true
+                userInfo.value = {
+                    id: 4,
+                    name: '林小鹿',
+                    gender: 'female',
+                    age: 24,
+                    occupation: '产品经理',
+                    district: '朝阳区',
+                    avatar: 'https://picsum.photos/200/200?random=101',
+                    auth: { realName: true, education: true, work: false }
+                }
+                loading.value = false
+                return
+            }
+
+            // 正常流程
             if (applyType.value === 'handle') {
                 isHandling.value = true
                 otherGreeting.value = '你好呀，觉得我们很合适，想进一步了解你'
@@ -198,6 +238,13 @@
 
     const goBack = () => {
         uni.navigateBack()
+    }
+
+    // 跳转个人主页
+    const goToProfile = () => {
+        uni.navigateTo({
+            url: `/pages/user/profile?userId=${userInfo.value.id}`
+        })
     }
 
     const onGreetingInput = (e) => {
@@ -365,6 +412,7 @@
         border-radius: $radius-card;
         box-shadow: $shadow-card;
         flex-shrink: 0;
+        cursor: pointer;
 
         &__avatar-wrap {
             position: relative;
@@ -577,12 +625,11 @@
         align-items: center;
         justify-content: center;
         flex: 1;
-        padding: 40px 20px;
+        padding: 16px;
         background-color: #FFFFFF;
         border-radius: 0;
         box-shadow: none;
         text-align: center;
-        margin-top: 12px;
         min-height: calc(100vh - 200px);
     }
 

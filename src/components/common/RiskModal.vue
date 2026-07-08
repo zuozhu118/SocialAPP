@@ -24,7 +24,7 @@
                     取消
                 </button>
                 <button class="risk-modal__btn risk-modal__btn--confirm" @click="handleConfirm">
-                    已知晓，继续申请
+                    已知晓风险
                 </button>
             </view>
         </view>
