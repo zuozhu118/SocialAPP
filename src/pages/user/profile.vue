@@ -26,7 +26,7 @@
                     <text class="dot">·</text>
                     <text>{{ userInfo.city }}</text>
                     <text class="dot">·</text>
-                    <text>ID {{ userId }}</text>
+                    <text>ID {{ userInfo.userId }}</text>
                 </view>
             </view>
         </view>
