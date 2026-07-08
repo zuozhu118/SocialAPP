@@ -52,9 +52,8 @@
                                     </view>
                                 </view>
                                 <text class="apply-item__meta">{{ item.age }}岁 · {{ item.occupation }} · {{ item.district }}</text>
-                                <!-- 申请语 - 点击进入详情 -->
-                                <text class="apply-item__greeting" @click.stop="goToDetail(item)">
-                                    「{{ item.greeting }}」
+                                <text class="apply-item__greeting" >
+                                    {{ item.greeting }}
                                 </text>
                             </view>
                         </view>
@@ -70,7 +69,7 @@
 
                         <!-- 已同意时展示微信号 -->
                         <view v-if="item.status === 'agreed' && item.wechat" class="apply-item__wechat">
-                            <text class="apply-item__wechat-label">对方微信号：</text>
+                            <text class="apply-item__wechat-label">微信号：</text>
                             <text class="apply-item__wechat-value">{{ item.wechat }}</text>
                             <button class="apply-item__wechat-copy" @click.stop="copyWechat(item.wechat)">复制</button>
                         </view>
@@ -106,8 +105,8 @@
                                 </view>
                                 <text class="apply-item__meta">{{ item.age }}岁 · {{ item.occupation }} · {{ item.district }}</text>
                                 <!-- 申请语 - 点击进入详情 -->
-                                <text class="apply-item__greeting" @click.stop="goToDetail(item)">
-                                    「{{ item.greeting }}」
+                                <text class="apply-item__greeting">
+                                    {{ item.greeting }}
                                 </text>
                             </view>
                         </view>
@@ -161,19 +160,13 @@
             <text class="apply-loading-mask__text">处理中...</text>
         </view>
 
-        <!-- 申请详情弹窗 -->
-        <ApplyDetailModal v-model:visible="showDetailModal"
-                          :data="detailData"
-                          @agree="handleDetailAgree"
-                          @reject="handleDetailReject"
-                          @refresh="refreshList" />
+
     </view>
 </template>
 
 <script setup>
     import { ref, computed, onMounted } from 'vue'
     import RiskModal from '@/components/common/RiskModal.vue'
-    import ApplyDetailModal from '@/components/common/ApplyDetailModal.vue'
 
     // ===== 状态 =====
     const currentTab = ref('received')
@@ -356,33 +349,6 @@
         })
     }
 
-    // ===== 跳转详情 =====
-    const goToDetail = (item) => {
-        // 构造详情数据
-        const isSent = currentTab.value === 'sent'
-        detailData.value = {
-            id: item.id,
-            type: currentTab.value, // sent | received
-            userName: isSent ? item.targetName : item.sourceName,
-            gender: item.gender,
-            age: item.age,
-            occupation: item.occupation,
-            district: item.district,
-            avatar: item.avatar,
-            auth: item.auth,
-            greeting: item.greeting,
-            status: item.status,
-            applyTime: item.applyTime,
-            handleTime: item.handleTime || null,
-            wechat: item.wechat || null,
-            // 如果是收到的，且状态为pending，需要显示操作按钮
-            canHandle: currentTab.value === 'received' && item.status === 'pending',
-            // 源数据引用，用于操作后更新
-            _source: item,
-            _index: isSent ? sentList.value.indexOf(item) : receivedList.value.indexOf(item)
-        }
-        showDetailModal.value = true
-    }
 
     // ===== 处理收到的申请 =====
     const handleAgree = (item) => {
