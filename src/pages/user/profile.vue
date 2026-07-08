@@ -26,7 +26,7 @@
                     <text class="dot">·</text>
                     <text>{{ userInfo.city }}</text>
                     <text class="dot">·</text>
-                    <text>ID {{ userInfo.userId }}</text>
+                    <text>{{ userInfo.career }}</text>
                 </view>
             </view>
         </view>
@@ -246,6 +246,7 @@
         age: 26,
         city: '北京',
         district: '浦东新区',
+        career: '财务',
         userAvatar: 'https://picsum.photos/200/200?random=11',
         coverImage: 'https://picsum.photos/800/450?random=102',
         ipLocation: '上海市',
