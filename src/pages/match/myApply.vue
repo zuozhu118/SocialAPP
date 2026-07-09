@@ -52,7 +52,7 @@
                                     </view>
                                 </view>
                                 <text class="apply-item__meta">{{ item.age }}岁 · {{ item.occupation }} · {{ item.district }}</text>
-                                <text class="apply-item__greeting" >
+                                <text class="apply-item__greeting">
                                     {{ item.greeting }}
                                 </text>
                             </view>
@@ -87,6 +87,12 @@
                 </view>
 
                 <view v-else class="my-apply-items">
+                    <!-- 说明：同意后将互相展示微信号 -->
+                    <view class="apply-tip">
+                        <text class="apply-tip__icon">💡</text>
+                        <text class="apply-tip__text">对方申请交换微信，点击同意后将互相展示微信号</text>
+                    </view>
+
                     <view v-for="(item, idx) in receivedList" :key="idx" class="apply-item">
                         <!-- 用户信息 - 点击跳转个人主页 -->
                         <view class="apply-item__header" @click="goToProfile(item.sourceUserId)">
@@ -530,6 +536,26 @@
         display: flex;
         flex-direction: column;
         gap: 12px;
+    }
+
+    // ===== 提示条 =====
+    .apply-tip {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        background-color: rgba(168, 184, 154, 0.1);
+        border-radius: 8px;
+
+        &__icon {
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        &__text {
+            font-size: 12px;
+            color: $text-helper;
+        }
     }
 
     // ===== 申请卡片 =====

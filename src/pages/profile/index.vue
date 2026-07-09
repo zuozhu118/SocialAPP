@@ -93,7 +93,7 @@
                 </view>
                 <view class="entry-card__info">
                     <text class="entry-card__title">我的申请</text>
-                    <text class="entry-card__sub">查看微信申请进度</text>
+                    <text class="entry-card__sub">查看交换微信申请进度</text>
                 </view>
                 <text class="entry-card__arrow icon icon-arrow-right"></text>
             </view>
