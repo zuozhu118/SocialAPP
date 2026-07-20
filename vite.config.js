@@ -14,7 +14,9 @@ export default defineConfig({
     alias: {
       '@': '/src'
     }
-  },
+    },
+
+
   server: {
     port: 3300,
     proxy: {
