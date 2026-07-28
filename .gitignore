@@ -52,3 +52,8 @@ UploadFile
 /UploadFile/src_main.js
 /UploadFile/src_components_common_CustomButton.vue
 /UploadFile/src_styles_reset.scss
+/UploadFile/src_App.vue
+/UploadFile/src_manifest.json
+/UploadFile/src_pages_common_antiFraud.vue
+/UploadFile/src_pages_common_report.vue
+/UploadFile/src_pages_index_index.vue

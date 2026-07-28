@@ -1,12 +1,13 @@
 <template>
     <view class="profile-page">
-        <!-- 个人信息头部 -->
+        <!-- ========================================== -->
+        <!-- 1. 顶部 Header (未登录/已登录) -->
+        <!-- ========================================== -->
         <view class="profile-header">
-            <view class="profile-header__main">
+            <!-- 已登录状态 Header -->
+            <view v-if="isLoggedIn" class="profile-header__main">
                 <view class="profile-header__avatar-wrap" @click="goToMyProfile">
-                    <image class="profile-header__avatar"
-                           :src="userInfo.avatar"
-                           mode="aspectFill" />
+                    <image class="profile-header__avatar" :src="userInfo.avatar" mode="aspectFill" />
                     <view class="avatar-auth-icon" :class="'auth-level-' + getAuthLevel()" v-if="authStatus.realName">
                         <text class="icon icon-check"></text>
                     </view>
@@ -21,73 +22,97 @@
                 </view>
             </view>
 
-            <!-- 认证状态区 - 美化版 -->
+            <!-- 未登录状态 Header -->
+            <view v-else class="profile-header__unlogin" @click="handleLoginGuide">
+                <view class="unlogin-avatar-wrap">
+                    <view class="unlogin-avatar-placeholder">
+                        <text class="icon icon-user"></text>
+                    </view>
+                </view>
+
+                <view class="unlogin-info">
+                    <view class="unlogin-title-row">
+                        <text class="unlogin-title">登录</text>
+                    </view>
+                    <text class="unlogin-subtitle">遇见真诚同频的另一半</text>
+                </view>
+
+                <view class="unlogin-arrow">
+                    <text class="icon icon-arrow-right"></text>
+                </view>
+            </view>
+
+            <!-- 认证状态区 -->
             <view class="auth-status-card">
                 <!-- 身份认证 -->
                 <view class="auth-status__item"
-                      :class="{ 'is-active': authStatus.realName }"
-                      @click="authStatus.realName ? null : goToRealNameAuth()">
-                    <text class="auth-status__icon icon icon-id-card" :class="{ 'is-active': authStatus.realName }"></text>
+                      :class="{ 'is-active': isLoggedIn && authStatus.realName }"
+                      @click="checkAuthAndExecute(goToRealNameAuth)">
+                    <text class="auth-status__icon icon icon-id-card" :class="{ 'is-active': isLoggedIn && authStatus.realName }"></text>
                     <view class="auth-status__info">
                         <text class="auth-status__label">身份</text>
-                        <text class="auth-status__status" :class="authStatus.realName ? 'is-done' : 'is-pending'">
-                            {{ authStatus.realName ? '已认证' : '去认证' }}
+                        <text class="auth-status__status" :class="(isLoggedIn && authStatus.realName) ? 'is-done' : 'is-pending'">
+                            {{ (isLoggedIn && authStatus.realName) ? '已认证' : '去认证' }}
                         </text>
                     </view>
-                    <text class="auth-status__arrow icon icon-arrow-right" v-if="!authStatus.realName"></text>
+                    <text class="auth-status__arrow icon icon-arrow-right" v-if="!isLoggedIn || !authStatus.realName"></text>
                 </view>
 
                 <!-- 学历认证 -->
                 <view class="auth-status__item"
-                      :class="{ 'is-active': authStatus.education }"
-                      @click="authStatus.education ? null : goToEducationAuth()">
-                    <text class="auth-status__icon icon icon-graduation" :class="{ 'is-active': authStatus.education }"></text>
+                      :class="{ 'is-active': isLoggedIn && authStatus.education }"
+                      @click="checkAuthAndExecute(goToEducationAuth)">
+                    <text class="auth-status__icon icon icon-graduation" :class="{ 'is-active': isLoggedIn && authStatus.education }"></text>
                     <view class="auth-status__info">
                         <text class="auth-status__label">学历</text>
-                        <text class="auth-status__status" :class="authStatus.education ? 'is-done' : 'is-pending'">
-                            {{ authStatus.education ? '已认证' : '去认证' }}
+                        <text class="auth-status__status" :class="(isLoggedIn && authStatus.education) ? 'is-done' : 'is-pending'">
+                            {{ (isLoggedIn && authStatus.education) ? '已认证' : '去认证' }}
                         </text>
                     </view>
-                    <text class="auth-status__arrow icon icon-arrow-right" v-if="!authStatus.education"></text>
+                    <text class="auth-status__arrow icon icon-arrow-right" v-if="!isLoggedIn || !authStatus.education"></text>
                 </view>
 
                 <!-- 单位认证 -->
                 <view class="auth-status__item"
-                      :class="{ 'is-active': authStatus.work }"
-                      @click="authStatus.work ? null : goToWorkAuth()">
-                    <text class="auth-status__icon icon icon-briefcase" :class="{ 'is-active': authStatus.work }"></text>
+                      :class="{ 'is-active': isLoggedIn && authStatus.work }"
+                      @click="checkAuthAndExecute(goToWorkAuth)">
+                    <text class="auth-status__icon icon icon-briefcase" :class="{ 'is-active': isLoggedIn && authStatus.work }"></text>
                     <view class="auth-status__info">
                         <text class="auth-status__label">单位</text>
-                        <text class="auth-status__status" :class="authStatus.work ? 'is-done' : 'is-pending'">
-                            {{ authStatus.work ? '已认证' : '去认证' }}
+                        <text class="auth-status__status" :class="(isLoggedIn && authStatus.work) ? 'is-done' : 'is-pending'">
+                            {{ (isLoggedIn && authStatus.work) ? '已认证' : '去认证' }}
                         </text>
                     </view>
-                    <text class="auth-status__arrow icon icon-arrow-right" v-if="!authStatus.work"></text>
+                    <text class="auth-status__arrow icon icon-arrow-right" v-if="!isLoggedIn || !authStatus.work"></text>
                 </view>
             </view>
         </view>
 
-        <!-- 核心数据统计卡 -->
+        <!-- ========================================== -->
+        <!-- 2. 核心数据统计卡 (未登录展示占位符) -->
+        <!-- ========================================== -->
         <view class="stats-card">
-            <view class="stats-card__item" @click="goToLikeList('send')">
-                <text class="stats-card__num">{{ likeSendCount }}</text>
+            <view class="stats-card__item" @click="checkAuthAndExecute(() => goToLikeList('send'))">
+                <text class="stats-card__num">{{ isLoggedIn ? likeSendCount : '-' }}</text>
                 <text class="stats-card__label">我喜欢的</text>
             </view>
             <view class="stats-card__divider"></view>
-            <view class="stats-card__item" @click="goToLikeList('receive')">
-                <text class="stats-card__num">{{ likeReceiveCount }}</text>
+            <view class="stats-card__item" @click="checkAuthAndExecute(() => goToLikeList('receive'))">
+                <text class="stats-card__num">{{ isLoggedIn ? likeReceiveCount : '-' }}</text>
                 <text class="stats-card__label">喜欢我的</text>
             </view>
             <view class="stats-card__divider"></view>
-            <view class="stats-card__item" @click="goToVisitorList">
-                <text class="stats-card__num">{{ visitorCount }}</text>
+            <view class="stats-card__item" @click="checkAuthAndExecute(goToVisitorList)">
+                <text class="stats-card__num">{{ isLoggedIn ? visitorCount : '-' }}</text>
                 <text class="stats-card__label">最近来访</text>
             </view>
         </view>
 
-        <!-- 功能入口 -->
+        <!-- ========================================== -->
+        <!-- 3. 功能入口 -->
+        <!-- ========================================== -->
         <view class="entry-card">
-            <view class="entry-card__item" @click="goToMyApply">
+            <view class="entry-card__item" @click="checkAuthAndExecute(goToMyApply)">
                 <view class="entry-card__icon entry-card__icon--blue">
                     <text class="icon icon-message"></text>
                 </view>
@@ -98,26 +123,30 @@
                 <text class="entry-card__arrow icon icon-arrow-right"></text>
             </view>
 
-            <view class="entry-card__item" @click="goToMedalWall">
+            <view class="entry-card__item" @click="checkAuthAndExecute(goToMedalWall)">
                 <view class="entry-card__icon entry-card__icon--purple">
                     <text class="icon icon-medal"></text>
                 </view>
                 <view class="entry-card__info">
                     <text class="entry-card__title">我的勋章</text>
-                    <text class="entry-card__sub">已获得 {{ medalCount }} 枚荣誉勋章</text>
+                    <text class="entry-card__sub">
+                        {{ isLoggedIn ? `已获得 ${medalCount} 枚荣誉勋章` : '登录查看已获得的勋章' }}
+                    </text>
                 </view>
                 <text class="entry-card__arrow icon icon-arrow-right"></text>
             </view>
         </view>
 
-        <!-- 工具菜单 -->
+        <!-- ========================================== -->
+        <!-- 4. 工具菜单 -->
+        <!-- ========================================== -->
         <view class="menu-card">
-            <view class="menu-card__item" @click="goToEquity">
+            <view class="menu-card__item" @click="checkAuthAndExecute(goToEquity)">
                 <text class="menu-card__icon icon icon-gift" />
                 <text class="menu-card__label">权益中心</text>
                 <text class="menu-card__arrow icon icon-arrow-right"></text>
             </view>
-            <view class="menu-card__item" @click="goToPrivacy">
+            <view class="menu-card__item" @click="checkAuthAndExecute(goToPrivacy)">
                 <text class="menu-card__icon icon icon-lock" />
                 <text class="menu-card__label">隐私设置</text>
                 <text class="menu-card__arrow icon icon-arrow-right"></text>
@@ -151,9 +180,11 @@
 <script setup>
 import { ref } from 'vue'
 
-const userId = ref('10086520')
-const applyPendingCount = ref(2)
+// ===== 1. 登录状态管理 =====
+const isLoggedIn = ref(false)
 
+// 用户信息与数据
+const userId = ref('10086520')
 const userInfo = ref({
     avatar: 'https://picsum.photos/200/200?random=30',
     nickname: '小鹿同学'
@@ -170,6 +201,25 @@ const likeReceiveCount = ref(8)
 const visitorCount = ref(26)
 const medalCount = ref(4)
 
+// ===== 2. 鉴权统一拦截器 (直跳登录页) =====
+const checkAuthAndExecute = (actionCallback) => {
+    if (!isLoggedIn.value) {
+        handleLoginGuide()
+        return
+    }
+    if (typeof actionCallback === 'function') {
+        actionCallback()
+    }
+}
+
+// 直接跳转登录页，去除弹框
+const handleLoginGuide = () => {
+    uni.navigateTo({
+        url: '/pages/auth/login'
+    })
+}
+
+// ===== 3. 业务跳转逻辑 =====
 const getAuthLevel = () => {
     const auth = authStatus.value
     let level = 0
@@ -228,34 +278,37 @@ const handleFeedback = () => {
 </script>
 
 <style lang="scss" scoped>
-    $bg-page: #F5F6FA;
+    // 变量统一定义
+    $bg-page: #FAFAFA;
     $bg-card: #FFFFFF;
-    $text-primary: #1A1A2E;
-    $text-secondary: #4A4A5A;
-    $text-helper: #9999A8;
-    $border-light: #EEEEF2;
+    $text-primary: #333333;
+    $text-secondary: #666666;
+    $text-helper: #999999;
+    $border-light: #E5E5E5;
     $primary-color: #A8B89A;
-    $primary-dark: #8A9B7A;
-    $radius-card: 16px;
-    $shadow-card: 0 2px 12px rgba(0, 0, 0, 0.05);
+    $primary-dark: #8AA07B;
+    $primary-light-bg: #F2F5EF;
+    $radius-card: 20px;
+    $shadow-card: 0 2px 12px rgba(0, 0, 0, 0.04);
 
     .profile-page {
         min-height: 100vh;
         background-color: $bg-page;
     }
 
-    // ----- 个人信息头部 -----
+    // ----- 1. 个人信息头部 -----
     .profile-header {
         background-color: $bg-card;
-        padding: 20px 16px 16px;
+        padding: 24px 16px 16px;
         margin-bottom: 12px;
     }
 
+    // 已登录样式
     .profile-header__main {
         display: flex;
         gap: 14px;
         align-items: center;
-        margin-bottom: 14px;
+        margin-bottom: 16px;
     }
 
     .profile-header__avatar-wrap {
@@ -352,7 +405,78 @@ const handleFeedback = () => {
         line-height: 2;
     }
 
-    // ===== 认证状态卡 - 美化版 =====
+    // 未登录 Header 样式
+    .profile-header__unlogin {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+        cursor: pointer;
+        padding: 4px 0;
+
+        &:active {
+            opacity: 0.85;
+        }
+    }
+
+    .unlogin-avatar-wrap {
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    .unlogin-avatar-placeholder {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background-color: $primary-light-bg;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        .icon {
+            font-size: 28px;
+            color: $primary-color;
+        }
+    }
+
+    .unlogin-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .unlogin-title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+
+    .unlogin-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: $text-primary;
+    }
+
+    .unlogin-tag {
+        font-size: 10px;
+        color: $primary-dark;
+        background-color: $primary-light-bg;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-weight: 500;
+    }
+
+    .unlogin-subtitle {
+        font-size: 12px;
+        color: $text-helper;
+    }
+
+    .unlogin-arrow {
+        color: $text-helper;
+        font-size: 14px;
+    }
+
+    // 认证状态卡
     .auth-status-card {
         display: flex;
         gap: 8px;
@@ -374,7 +498,7 @@ const handleFeedback = () => {
         &:active {
             transform: scale(0.97);
         }
-        // 已认证
+
         &.is-active {
             background: rgba(168, 184, 154, 0.12);
             border: 1px solid rgba(168, 184, 154, 0.25);
@@ -392,7 +516,7 @@ const handleFeedback = () => {
                 color: $primary-dark;
             }
         }
-        // 未认证
+
         &:not(.is-active) {
             .auth-status__icon {
                 color: $text-helper;
@@ -400,6 +524,7 @@ const handleFeedback = () => {
 
             .auth-status__status.is-pending {
                 color: $primary-color;
+                font-weight: 500;
             }
 
             .auth-status__arrow {
@@ -428,13 +553,11 @@ const handleFeedback = () => {
         font-size: 12px;
         color: $text-helper;
         line-height: 1.3;
-        transition: all 0.3s ease;
         letter-spacing: 0.3px;
     }
 
     .auth-status__status {
         font-size: 12px;
-        transition: all 0.3s ease;
         line-height: 1.3;
 
         &.is-done {
@@ -443,17 +566,14 @@ const handleFeedback = () => {
 
         &.is-pending {
             color: $primary-color;
-            font-weight: 500;
         }
     }
 
     .auth-status__arrow {
-        font-size: 22px;
+        font-size: 12px;
         color: $primary-color;
         flex-shrink: 0;
-        transition: transform 0.2s ease;
         margin-left: 2px;
-        font-weight: 600;
     }
 
     @keyframes arrowPulse {
@@ -463,19 +583,19 @@ const handleFeedback = () => {
         }
 
         50% {
-            transform: translateX(4px);
+            transform: translateX(3px);
             opacity: 1;
         }
     }
 
-    // ----- 统计卡 -----
+    // ----- 2. 核心统计卡 -----
     .stats-card {
         display: flex;
         align-items: center;
         background-color: $bg-card;
         margin: 0 16px 12px;
         border-radius: $radius-card;
-        padding: 14px 0;
+        padding: 16px 0;
         box-shadow: $shadow-card;
     }
 
@@ -484,7 +604,7 @@ const handleFeedback = () => {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 2px;
+        gap: 4px;
         cursor: pointer;
 
         &:active {
@@ -506,11 +626,11 @@ const handleFeedback = () => {
 
     .stats-card__divider {
         width: 1px;
-        height: 30px;
+        height: 28px;
         background-color: $border-light;
     }
 
-    // ----- 入口卡片 -----
+    // ----- 3. 功能入口 -----
     .entry-card {
         background-color: $bg-card;
         margin: 0 16px 12px;
@@ -575,27 +695,13 @@ const handleFeedback = () => {
             color: $text-helper;
         }
 
-        &__badge {
-            min-width: 20px;
-            height: 20px;
-            padding: 0 6px;
-            font-size: 11px;
-            font-weight: 600;
-            color: #FFFFFF;
-            background-color: #FF4757;
-            border-radius: 10px;
-            line-height: 20px;
-            text-align: center;
-            margin-right: 8px;
-        }
-
         &__arrow {
             font-size: 12px;
             color: $text-helper;
         }
     }
 
-    // ----- 菜单卡片 -----
+    // ----- 4. 工具菜单 -----
     .menu-card {
         background-color: $bg-card;
         margin: 0 16px 12px;
@@ -638,6 +744,6 @@ const handleFeedback = () => {
     }
 
     .page-bottom-placeholder {
-        height: 10px;
+        height: 24px;
     }
 </style>
