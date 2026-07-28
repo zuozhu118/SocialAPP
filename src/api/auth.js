@@ -3,11 +3,11 @@
 import { http } from '@/utils/request'
 
 /**
- * Î¢ÐÅÒ»¼üµÇÂ¼£¨»ñÈ¡ÊÖ»úºÅ£©
+ * å¾®ä¿¡ä¸€é”®ç™»å½•ï¼ˆèŽ·å–æ‰‹æœºå·ï¼‰
  * @param {Object} params
- * @param {string} params.code - wx.login »ñÈ¡µÄ code
- * @param {string} params.encryptedData - getPhoneNumber ·µ»ØµÄ encryptedData
- * @param {string} params.iv - getPhoneNumber ·µ»ØµÄ iv
+ * @param {string} params.code - wx.login èŽ·å–çš„ code
+ * @param {string} params.encryptedData - getPhoneNumber è¿”å›žçš„ encryptedData
+ * @param {string} params.iv - getPhoneNumber è¿”å›žçš„ iv
  */
 export const wechatLogin = (params) => {
     return http.post('/Auth/wechat-login', {
@@ -16,12 +16,12 @@ export const wechatLogin = (params) => {
         iv: params.iv
     }, {
         showLoading: true,
-        loadingText: 'µÇÂ¼ÖÐ...'
+        loadingText: 'ç™»å½•ä¸­...'
     })
 }
 
 /**
- * »ñÈ¡ÈÏÖ¤×´Ì¬
+ * èŽ·å–è®¤è¯çŠ¶æ€
  */
 export const getAuthStatus = () => {
     return http.get('/Auth/auth-status', {}, {
@@ -30,18 +30,18 @@ export const getAuthStatus = () => {
 }
 
 /**
- * ÊµÃûÈÏÖ¤
+ * å®žåè®¤è¯
  * @param {Object} params
  */
 export const realNameAuth = (params) => {
     return http.post('/Auth/realname', params, {
         showLoading: true,
-        loadingText: 'ÈÏÖ¤ÖÐ...'
+        loadingText: 'è®¤è¯ä¸­...'
     })
 }
 
 /**
- * ÍË³öµÇÂ¼
+ * é€€å‡ºç™»å½•
  */
 export const logout = () => {
     return http.post('/Auth/logout', {}, {

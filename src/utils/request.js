@@ -1,24 +1,24 @@
 
-// ===== »·¾³ÅäÖÃ =====
+// ===== çŽ¯å¢ƒé…ç½® =====
 const ENV = {
     development: {
-        baseURL: '/api'  // ¿ª·¢»·¾³Ê¹ÓÃ´úÀí£¬/api »á±»´úÀíµ½ºó¶Ë
+        baseURL: 'https://localhost:5300'  
     },
     production: {
-        baseURL: 'https://your-api-domain.com/api'  // Éú²ú»·¾³Ö±½ÓÇëÇó
+        baseURL: 'https://your-api-domain.com/api'  // ç”Ÿäº§çŽ¯å¢ƒç›´æŽ¥è¯·æ±‚
     }
 }
 
-// »ñÈ¡µ±Ç°»·¾³
+// èŽ·å–å½“å‰çŽ¯å¢ƒ
 const getEnv = () => {
-    // ¿ª·¢¹¤¾ßÖÐÎª development£¬Õæ»úÎª production
+    // å¼€å‘å·¥å…·ä¸­ä¸º developmentï¼ŒçœŸæœºä¸º production
     if (process.env.NODE_ENV === 'development') {
         return 'development'
     }
     return 'production'
 }
 
-// ===== ÅäÖÃ =====
+// ===== é…ç½® =====
 const CONFIG = {
     baseURL: ENV[getEnv()].baseURL,
     timeout: 30000,
@@ -27,9 +27,9 @@ const CONFIG = {
     }
 }
 
-// ===== ÇëÇóÀ¹½ØÆ÷ =====
+// ===== è¯·æ±‚æ‹¦æˆªå™¨ =====
 const requestInterceptor = (config) => {
-    // ×Ô¶¯Ð¯´ø Token
+    // è‡ªåŠ¨æºå¸¦ Token
     try {
         const token = uni.getStorageSync('token')
         if (token) {
@@ -39,10 +39,10 @@ const requestInterceptor = (config) => {
             }
         }
     } catch (e) {
-        console.warn('»ñÈ¡ Token Ê§°Ü:', e)
+        console.warn('èŽ·å– Token å¤±è´¥:', e)
     }
 
-    // Ìí¼ÓÊ±¼ä´Á·ÀÖ¹»º´æ£¨GET ÇëÇó£©
+    // æ·»åŠ æ—¶é—´æˆ³é˜²æ­¢ç¼“å­˜ï¼ˆGET è¯·æ±‚ï¼‰
     if (config.method === 'GET' && !config.noCache) {
         const timestamp = Date.now()
         config.url += (config.url.includes('?') ? '&' : '?') + `_t=${timestamp}`
@@ -51,37 +51,37 @@ const requestInterceptor = (config) => {
     return config
 }
 
-// ===== ÏìÓ¦À¹½ØÆ÷ =====
+// ===== å“åº”æ‹¦æˆªå™¨ =====
 const responseInterceptor = (response) => {
     const { statusCode, data } = response
 
-    // HTTP ×´Ì¬Âë¼ì²é
+    // HTTP çŠ¶æ€ç æ£€æŸ¥
     if (statusCode !== 200) {
         return Promise.reject({
             code: statusCode,
-            msg: `ÍøÂçÇëÇóÒì³£ (${statusCode})`
+            msg: `ç½‘ç»œè¯·æ±‚å¼‚å¸¸ (${statusCode})`
         })
     }
 
-    // ÒµÎñ×´Ì¬Âë¼ì²é£¨ºó¶Ë·µ»Ø¸ñÊ½Îª { code: 0, data: ..., msg: ... }£©
+    // ä¸šåŠ¡çŠ¶æ€ç æ£€æŸ¥ï¼ˆåŽç«¯è¿”å›žæ ¼å¼ä¸º { code: 0, data: ..., msg: ... }ï¼‰
     if (data.code !== undefined && data.code !== 0) {
-        // Token ¹ýÆÚ´¦Àí
+        // Token è¿‡æœŸå¤„ç†
         if (data.code === 401 || data.code === 10001) {
-            // Çå³ýµÇÂ¼ÐÅÏ¢²¢Ìø×ªµ½µÇÂ¼Ò³
+            // æ¸…é™¤ç™»å½•ä¿¡æ¯å¹¶è·³è½¬åˆ°ç™»å½•é¡µ
             try {
                 uni.removeStorageSync('token')
                 uni.removeStorageSync('userInfo')
                 uni.removeStorageSync('equity')
             } catch (e) {
-                console.warn('Çå³ý´æ´¢Ê§°Ü:', e)
+                console.warn('æ¸…é™¤å­˜å‚¨å¤±è´¥:', e)
             }
 
-            // Ìø×ªµ½µÇÂ¼Ò³£¨Èç¹ûµ±Ç°²»ÔÚµÇÂ¼Ò³£©
+            // è·³è½¬åˆ°ç™»å½•é¡µï¼ˆå¦‚æžœå½“å‰ä¸åœ¨ç™»å½•é¡µï¼‰
             const pages = getCurrentPages()
             const currentPage = pages[pages.length - 1]
             if (currentPage && !currentPage.route.includes('auth/login')) {
                 uni.showToast({
-                    title: 'µÇÂ¼ÒÑ¹ýÆÚ£¬ÇëÖØÐÂµÇÂ¼',
+                    title: 'ç™»å½•å·²è¿‡æœŸï¼Œè¯·é‡æ–°ç™»å½•',
                     icon: 'none',
                     duration: 2000
                 })
@@ -94,48 +94,48 @@ const responseInterceptor = (response) => {
 
             return Promise.reject({
                 code: data.code,
-                msg: data.msg || 'µÇÂ¼ÒÑ¹ýÆÚ'
+                msg: data.msg || 'ç™»å½•å·²è¿‡æœŸ'
             })
         }
 
-        // ÆäËûÒµÎñ´íÎó
+        // å…¶ä»–ä¸šåŠ¡é”™è¯¯
         return Promise.reject({
             code: data.code,
-            msg: data.msg || 'ÇëÇóÊ§°Ü'
+            msg: data.msg || 'è¯·æ±‚å¤±è´¥'
         })
     }
 
-    // ³É¹¦·µ»Ø data
+    // æˆåŠŸè¿”å›ž data
     return data.data !== undefined ? data.data : data
 }
 
-// ===== È«¾Ö´íÎó´¦Àí =====
+// ===== å…¨å±€é”™è¯¯å¤„ç† =====
 const handleError = (error) => {
-    console.error('ÇëÇó´íÎó:', error)
+    console.error('è¯·æ±‚é”™è¯¯:', error)
 
-    // ÍøÂç´íÎó
+    // ç½‘ç»œé”™è¯¯
     if (!error.msg) {
         return {
             code: -1,
-            msg: 'ÍøÂçÁ¬½ÓÊ§°Ü£¬Çë¼ì²éÍøÂçºóÖØÊÔ'
+            msg: 'ç½‘ç»œè¿žæŽ¥å¤±è´¥ï¼Œè¯·æ£€æŸ¥ç½‘ç»œåŽé‡è¯•'
         }
     }
 
     return error
 }
 
-// ===== ºËÐÄÇëÇó·½·¨ =====
+// ===== æ ¸å¿ƒè¯·æ±‚æ–¹æ³• =====
 const request = (options) => {
     return new Promise((resolve, reject) => {
-        // Æ´½ÓÍêÕû URL
+        // æ‹¼æŽ¥å®Œæ•´ URL
         let url = options.url
-        // Èç¹û url ²»ÊÇÒÔ http ¿ªÍ·£¬ÔòÆ´½Ó baseURL
+        // å¦‚æžœ url ä¸æ˜¯ä»¥ http å¼€å¤´ï¼Œåˆ™æ‹¼æŽ¥ baseURL
         if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            // È·±£ URL ÒÔ / ¿ªÍ·
+            // ç¡®ä¿ URL ä»¥ / å¼€å¤´
             url = CONFIG.baseURL + (url.startsWith('/') ? url : '/' + url)
         }
 
-        // ºÏ²¢ÅäÖÃ
+        // åˆå¹¶é…ç½®
         const config = {
             url: url,
             method: options.method || 'GET',
@@ -147,27 +147,27 @@ const request = (options) => {
             data: options.data || {}
         }
 
-        // ÇëÇóÀ¹½Ø
+        // è¯·æ±‚æ‹¦æˆª
         const interceptedConfig = requestInterceptor(config)
 
-        // ÏÔÊ¾¼ÓÔØÌáÊ¾
+        // æ˜¾ç¤ºåŠ è½½æç¤º
         if (options.showLoading) {
             uni.showLoading({
-                title: options.loadingText || '¼ÓÔØÖÐ...',
+                title: options.loadingText || 'åŠ è½½ä¸­...',
                 mask: true
             })
         }
 
-        // ·¢ÆðÇëÇó
+        // å‘èµ·è¯·æ±‚
         uni.request({
             ...interceptedConfig,
             success: (res) => {
-                // Òþ²Ø¼ÓÔØ
+                // éšè—åŠ è½½
                 if (options.showLoading) {
                     uni.hideLoading()
                 }
 
-                // ÏìÓ¦À¹½Ø
+                // å“åº”æ‹¦æˆª
                 responseInterceptor(res)
                     .then((data) => {
                         resolve(data)
@@ -178,13 +178,13 @@ const request = (options) => {
                     })
             },
             fail: (err) => {
-                // Òþ²Ø¼ÓÔØ
+                // éšè—åŠ è½½
                 if (options.showLoading) {
                     uni.hideLoading()
                 }
 
                 const error = handleError({
-                    msg: 'ÍøÂçÁ¬½ÓÊ§°Ü£¬Çë¼ì²éÍøÂçºóÖØÊÔ'
+                    msg: 'ç½‘ç»œè¿žæŽ¥å¤±è´¥ï¼Œè¯·æ£€æŸ¥ç½‘ç»œåŽé‡è¯•'
                 })
                 reject(error)
             }
@@ -192,10 +192,10 @@ const request = (options) => {
     })
 }
 
-// ===== ±ã½Ý·½·¨ =====
+// ===== ä¾¿æ·æ–¹æ³• =====
 export const http = {
     /**
-     * GET ÇëÇó
+     * GET è¯·æ±‚
      */
     get(url, params = {}, options = {}) {
         let fullUrl = url
@@ -213,7 +213,7 @@ export const http = {
     },
 
     /**
-     * POST ÇëÇó
+     * POST è¯·æ±‚
      */
     post(url, data = {}, options = {}) {
         return request({
@@ -225,7 +225,7 @@ export const http = {
     },
 
     /**
-     * PUT ÇëÇó
+     * PUT è¯·æ±‚
      */
     put(url, data = {}, options = {}) {
         return request({
@@ -237,7 +237,7 @@ export const http = {
     },
 
     /**
-     * DELETE ÇëÇó
+     * DELETE è¯·æ±‚
      */
     delete(url, params = {}, options = {}) {
         let fullUrl = url
@@ -255,13 +255,13 @@ export const http = {
     },
 
     /**
-     * ÎÄ¼þÉÏ´«
+     * æ–‡ä»¶ä¸Šä¼ 
      */
     upload(url, filePath, name = 'file', formData = {}) {
         return new Promise((resolve, reject) => {
             const token = uni.getStorageSync('token') || ''
 
-            // Æ´½ÓÍêÕû URL
+            // æ‹¼æŽ¥å®Œæ•´ URL
             let fullUrl = url
             if (!url.startsWith('http://') && !url.startsWith('https://')) {
                 fullUrl = CONFIG.baseURL + (url.startsWith('/') ? url : '/' + url)
@@ -283,7 +283,7 @@ export const http = {
                         } else {
                             reject({
                                 code: data.code,
-                                msg: data.msg || 'ÉÏ´«Ê§°Ü'
+                                msg: data.msg || 'ä¸Šä¼ å¤±è´¥'
                             })
                         }
                     } catch (e) {
@@ -293,7 +293,7 @@ export const http = {
                 fail: (err) => {
                     reject({
                         code: -1,
-                        msg: 'ÉÏ´«Ê§°Ü£¬Çë¼ì²éÍøÂç'
+                        msg: 'ä¸Šä¼ å¤±è´¥ï¼Œè¯·æ£€æŸ¥ç½‘ç»œ'
                     })
                 }
             })
@@ -301,5 +301,5 @@ export const http = {
     }
 }
 
-// ===== µ¼³öÄ¬ÈÏ =====
+// ===== å¯¼å‡ºé»˜è®¤ =====
 export default http

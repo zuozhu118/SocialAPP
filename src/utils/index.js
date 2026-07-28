@@ -1,12 +1,12 @@
 
 import http from './request'
 
-// µ¼³öËùÓÐ¹¤¾ß
+// å¯¼å‡ºæ‰€æœ‰å·¥å…·
 export {
     http
 }
 
-// Ä¬ÈÏµ¼³ö
+// é»˜è®¤å¯¼å‡º
 export default {
     http
 }

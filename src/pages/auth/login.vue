@@ -1,4 +1,3 @@
-
 <template>
     <view class="login-page">
         <!-- 顶部品牌区 -->
@@ -7,41 +6,49 @@
                 <image class="login-header__logo-img" src="/static/logo.png" mode="aspectFit" />
             </view>
             <text class="login-header__title">真实交友</text>
+            <text class="login-header__slogan">寻找同频的另一半</text>
         </view>
 
-        <!-- 登录卡片 -->
+        <!-- 登录核心区 -->
         <view class="login-card">
-            <view class="login-card__title">手机号快捷登录</view>
+            <!-- 场景 A：未勾选协议 -> 普通按钮拦截点击 -->
+            <button v-if="!agreed"
+                    class="login-card__wechat-btn"
+                    @click="handleDisabledBtnClick">
+                <text class="login-card__wechat-text">手机号快捷登录</text>
+            </button>
 
-            <!-- 微信手机号授权按钮 -->
-            <button class="login-card__wechat-btn"
+            <!-- 场景 B：已勾选协议 -> 触发微信原生手机号授权 -->
+            <button v-else
+                    class="login-card__wechat-btn"
                     open-type="getPhoneNumber"
                     @getphonenumber="handleGetPhoneNumber"
                     :loading="wechatLoading"
                     :disabled="wechatLoading">
-                <view class="login-card__wechat-icon">
-                    <text>💬</text>
-                </view>
-                <text class="login-card__wechat-text">微信一键登录</text>
+                <text class="login-card__wechat-text">手机号快捷登录</text>
             </button>
 
-            <!-- 底部协议 -->
-            <view class="login-card__agreement">
-                <view class="login-card__checkbox" @click="agreed = !agreed">
-                    <text class="login-card__checkbox-icon">{{ agreed ? '✓' : '' }}</text>
+            <!-- 底部协议区 -->
+            <view class="login-card__agreement" :class="{ 'is-shake': isAgreementShaking }">
+                <view class="login-card__checkbox" :class="{ 'is-checked': agreed }" @click="agreed = !agreed">
+                    <text class="icon icon-check" v-if="agreed"></text>
                 </view>
-                <text class="login-card__agreement-text">
-                    登录即代表您同意
-                    <text class="login-card__agreement-link">《用户协议》</text>
-                    和
-                    <text class="login-card__agreement-link">《隐私政策》</text>
-                </text>
+                <view class="login-card__agreement-text" @click="agreed = !agreed">
+                    <text>登录即代表您同意 </text>
+                    <text class="login-card__agreement-link" @click.stop="goToAgreement('user')">《用户协议》</text>
+                    <text> 和 </text>
+                    <text class="login-card__agreement-link" @click.stop="goToAgreement('privacy')">《隐私政策》</text>
+                </view>
             </view>
         </view>
 
-        <!-- 底部提示 -->
+        <!-- 底部品牌落款 -->
         <view class="login-footer">
-            <text class="login-footer__text">真实 · 纯净 · 安心</text>
+            <view class="login-footer__divider">
+                <text class="dot"></text>
+                <text class="login-footer__text">真实 · 纯净 · 安心</text>
+                <text class="dot"></text>
+            </view>
         </view>
     </view>
 </template>
@@ -56,25 +63,35 @@
     const appStore = useAppStore()
 
     // ===== 状态 =====
-    const agreed = ref(true)  // 默认同意
+    const agreed = ref(false)  // 默认未选中
     const wechatLoading = ref(false)
+    const isAgreementShaking = ref(false)
+
+    // 协议抖动效果触发
+    const triggerAgreementShake = () => {
+        isAgreementShaking.value = true
+        uni.showToast({ title: '请先阅读并勾选同意协议', icon: 'none' })
+        setTimeout(() => {
+            isAgreementShaking.value = false
+        }, 600)
+    }
+
+    // ===== 未同意协议时点击按钮拦截 =====
+    const handleDisabledBtnClick = () => {
+        triggerAgreementShake()
+    }
 
     // ===== 微信手机号一键登录 =====
     const handleGetPhoneNumber = async (e) => {
+        console.log('[Login Debug] getPhoneNumber 回调触发:', e.detail)
         const { errMsg, encryptedData, iv } = e.detail
 
         if (errMsg === 'getPhoneNumber:ok') {
             wechatLoading.value = true
 
             try {
-                // 1. 检查是否同意协议
-                if (!agreed.value) {
-                    uni.showToast({ title: '请先同意用户协议', icon: 'none' })
-                    wechatLoading.value = false
-                    return
-                }
-
-                // 2. 调用 wx.login 获取 code
+                // 1. 调用 wx.login 获取 code
+                console.log('[Login Debug] 开始调用 wx.login 获取 code...')
                 const loginRes = await new Promise((resolve, reject) => {
                     wx.login({
                         success: resolve,
@@ -83,6 +100,7 @@
                 })
 
                 const wxCode = loginRes.code
+                console.log('[Login Debug] wx.login 成功，code:', wxCode)
 
                 if (!wxCode) {
                     uni.showToast({ title: '获取登录凭证失败', icon: 'none' })
@@ -90,14 +108,16 @@
                     return
                 }
 
-                // 3. 调用后端登录接口
+                // 2. 调用后端登录接口
+                console.log('[Login Debug] 开始请求后端 wechatLogin 接口...')
                 const result = await wechatLogin({
                     code: wxCode,
                     encryptedData: encryptedData,
                     iv: iv
                 })
+                console.log('[Login Debug] 后端登录返回结果:', result)
 
-                // 4. 保存登录信息
+                // 3. 保存登录信息
                 uni.setStorageSync('token', result.token)
                 uni.setStorageSync('userInfo', result.user)
 
@@ -106,14 +126,13 @@
                 userStore.setAuthStatus('education', result.authStatus?.education || false)
                 userStore.setAuthStatus('work', result.authStatus?.work || false)
 
-                // 5. 更新权益信息
                 if (result.equity) {
                     appStore.updateEquity(result.equity)
                 }
 
                 uni.showToast({ title: '登录成功', icon: 'success' })
 
-                // 6. 跳转
+                // 4. 界面跳转
                 setTimeout(() => {
                     if (!result.authStatus?.realName) {
                         uni.navigateTo({ url: '/pages/auth/realname' })
@@ -123,128 +142,146 @@
                 }, 500)
 
             } catch (error) {
-                console.error('微信登录失败:', error)
+                console.error('[Login Debug] 微信登录过程异常:', error)
                 uni.showToast({ title: error.msg || '登录失败，请重试', icon: 'none' })
             } finally {
                 wechatLoading.value = false
             }
         } else if (errMsg === 'getPhoneNumber:fail user deny') {
-            uni.showToast({ title: '已拒绝授权', icon: 'none' })
+            console.warn('[Login Debug] 用户拒绝手机号授权')
+            uni.showToast({ title: '已取消微信授权', icon: 'none' })
         } else {
+            console.error('[Login Debug] 手机号授权未知失败:', errMsg)
             uni.showToast({ title: '授权失败，请重试', icon: 'none' })
         }
+    }
+
+    // 查看协议
+    const goToAgreement = (type) => {
+        const url = type === 'user' ? '/pages/common/userAgreement' : '/pages/common/privacyPolicy'
+        uni.navigateTo({ url })
     }
 </script>
 
 <style lang="scss" scoped>
-    $bg-page: #F5F6FA;
+    $bg-page: #FAFAFA;
     $bg-card: #FFFFFF;
-    $text-primary: #1A1A2E;
-    $text-secondary: #4A4A5A;
-    $text-helper: #9999A8;
-    $border-light: #EEEEF2;
+    $text-primary: #2C3E50;
+    $text-secondary: #606266;
+    $text-helper: #909399;
+    $border-light: #E4E7ED;
     $primary-color: #A8B89A;
-    $primary-dark: #8A9B7A;
-    $primary-light-bg: rgba(168, 184, 154, 0.12);
-    $radius-card: 16px;
-    $radius-btn: 24px;
-    $shadow-card: 0 2px 12px rgba(0, 0, 0, 0.05);
-    $font-size-xs: 11px;
-    $font-size-sm: 13px;
-    $font-size-md: 15px;
-    $font-size-lg: 18px;
-    $font-size-xl: 22px;
-    $font-weight-regular: 400;
-    $font-weight-medium: 500;
-    $spacing-xs: 4px;
-    $spacing-sm: 8px;
-    $spacing-md: 12px;
-    $spacing-lg: 20px;
-    $spacing-xl: 28px;
-    $page-padding-x: 20px;
-    $duration-fast: 0.2s;
-    $color-warning: #FF4757;
+    $primary-dark: #8AA07B;
+    $primary-light-bg: #F2F5EF;
     $color-wechat: #07C160;
+    $radius-card: 24px;
+    $shadow-card: 0 8px 32px rgba(168, 184, 154, 0.12);
 
     .login-page {
         min-height: 100vh;
-        background: linear-gradient(180deg, #F2F5EF 0%, #FAFAFA 40%);
-        padding: 0 $page-padding-x;
+        background: radial-gradient(circle at 50% 0%, #F0F4EC 0%, #FAFAFA 70%);
+        padding: 0 24px;
         display: flex;
         flex-direction: column;
-        align-items: center;
+        justify-content: space-between;
+        box-sizing: border-box;
     }
 
-    // ===== 头部 =====
+    // ===== 1. Header 区域 =====
     .login-header {
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding-top: 80px;
-        padding-bottom: 40px;
+        padding-top: 100px;
     }
 
     .login-header__logo {
-        width: 72px;
-        height: 72px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, $primary-color, $primary-dark);
+        width: 80px;
+        height: 80px;
+        border-radius: 24px;
+        background: #FFFFFF;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: $spacing-md;
-        box-shadow: 0 4px 20px rgba($primary-color, 0.3);
-        overflow: hidden;
+        margin-bottom: 16px;
+        box-shadow: 0 10px 25px rgba(168, 184, 154, 0.2);
+        position: relative;
+
+        &::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 24px;
+            border: 1px solid rgba(168, 184, 154, 0.3);
+        }
     }
 
     .login-header__logo-img {
-        width: 44px;
-        height: 44px;
+        width: 52px;
+        height: 52px;
     }
 
     .login-header__title {
-        font-size: $font-size-xl;
-        font-weight: $font-weight-medium;
+        font-size: 24px;
+        font-weight: 600;
         color: $text-primary;
         letter-spacing: 2px;
+        margin-bottom: 6px;
     }
 
-    // ===== 登录卡片 =====
+    .login-header__slogan {
+        font-size: 13px;
+        color: $text-helper;
+        letter-spacing: 1px;
+    }
+
+    // ===== 2. 卡片区域 =====
     .login-card {
-        width: 100%;
-        max-width: 400px;
-        background-color: $bg-card;
-        border-radius: $radius-card;
-        padding: $spacing-xl $spacing-lg $spacing-lg;
-        box-shadow: $shadow-card;
+        padding: 32px 24px 28px;
     }
 
-    .login-card__title {
+    .login-card__welcome {
         text-align: center;
-        font-size: $font-size-md;
-        font-weight: $font-weight-medium;
-        color: $text-primary;
-        margin-bottom: $spacing-lg;
+        margin-bottom: 28px;
     }
 
-    // 微信登录按钮
+    .login-card__welcome-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: $text-primary;
+        display: block;
+        margin-bottom: 6px;
+    }
+
+    .login-card__welcome-sub {
+        font-size: 12px;
+        color: $text-helper;
+        display: block;
+    }
+
+    // 微信授权按钮
     .login-card__wechat-btn {
         width: 100%;
-        height: 52px;
+        height: 50px;
         background-color: $color-wechat;
         color: #FFFFFF;
-        border-radius: $radius-btn;
+        border-radius: 25px;
         border: none;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: $spacing-sm;
-        transition: all $duration-fast ease;
+        gap: 10px;
+        box-shadow: 0 6px 18px rgba(7, 193, 96, 0.25);
+        transition: all 0.2s ease;
         padding: 0;
 
+        &::after {
+            border: none;
+        }
+
         &:active:not(:disabled) {
-            opacity: 0.85;
             transform: scale(0.98);
+            box-shadow: 0 2px 8px rgba(7, 193, 96, 0.2);
         }
 
         &:disabled {
@@ -253,72 +290,117 @@
     }
 
     .login-card__wechat-icon {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background-color: rgba(255, 255, 255, 0.2);
         display: flex;
         align-items: center;
         justify-content: center;
 
-        text {
-            font-size: 16px;
+        .icon {
+            font-size: 22px;
+            color: #FFFFFF;
         }
     }
 
     .login-card__wechat-text {
-        font-size: $font-size-md;
-        font-weight: $font-weight-medium;
-        letter-spacing: 1px;
+        font-size: 15px;
+        font-weight: 500;
+        letter-spacing: 0.5px;
     }
 
-    // 协议
+    // 协议复选框区域
     .login-card__agreement {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: center;
-        gap: $spacing-sm;
-        margin-top: $spacing-lg;
-        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 24px;
+        padding: 0 4px;
+        transition: transform 0.1s ease;
+
+        &.is-shake {
+            animation: shake 0.4s ease-in-out;
+
+            .login-card__checkbox {
+                border-color: #FF4D4F;
+            }
+        }
     }
 
     .login-card__checkbox {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
         border-radius: 4px;
-        border: 1.5px solid $border-light;
+        border: 1.5px solid #C0C4CC;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        transition: all $duration-fast ease;
+        transition: all 0.2s ease;
         flex-shrink: 0;
-        background-color: $bg-card;
-    }
+        margin-top: 2px;
+        background-color: #FFFFFF;
 
-    .login-card__checkbox-icon {
-        font-size: 12px;
-        color: $primary-color;
+        &.is-checked {
+            background-color: $primary-color;
+            border-color: $primary-color;
+        }
+
+        .icon {
+            font-size: 10px;
+            color: #FFFFFF;
+            font-weight: bold;
+        }
     }
 
     .login-card__agreement-text {
-        font-size: $font-size-xs;
+        font-size: 12px;
         color: $text-helper;
+        line-height: 1.5;
     }
 
     .login-card__agreement-link {
-        color: $primary-color;
+        color: $primary-dark;
+        font-weight: 500;
+        display: inline;
     }
 
-    // ===== 底部 =====
+    // ===== 3. Footer 区域 =====
     .login-footer {
-        margin-top: $spacing-lg;
-        padding-bottom: $spacing-lg;
+        padding-bottom: 40px;
+        display: flex;
+        justify-content: center;
+    }
+
+    .login-footer__divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
 
     .login-footer__text {
-        font-size: $font-size-xs;
+        font-size: 12px;
         color: $text-helper;
-        letter-spacing: 4px;
+        letter-spacing: 3px;
+    }
+
+    .dot {
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background-color: #DCDFE6;
+    }
+
+    // 抖动提醒动画
+    @keyframes shake {
+        0%, 100% {
+            transform: translateX(0);
+        }
+
+        20%, 60% {
+            transform: translateX(-6px);
+        }
+
+        40%, 80% {
+            transform: translateX(6px);
+        }
     }
 </style>
