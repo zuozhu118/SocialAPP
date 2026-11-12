@@ -3,362 +3,331 @@
         <!-- 导航栏 -->
         <view class="apply-navbar">
             <text class="apply-navbar__back icon icon-arrow-left" @click="goBack"></text>
-            <text class="apply-navbar__title">{{ pageTitle }}</text>
+            <text class="apply-navbar__title">交换微信</text>
             <view class="apply-navbar__placeholder"></view>
         </view>
 
-        <!-- 用户信息卡片 - 始终显示，点击跳转个人主页 -->
-        <view class="apply-user-card" v-if="userInfo" @click="goToProfile">
-            <view class="apply-user-card__avatar-wrap">
-                <image class="apply-user-card__avatar" :src="userInfo.avatar" mode="aspectFill" />
-                <view class="apply-user-card__auth" v-if="userInfo.auth.realName">
-                    <text class="icon icon-check"></text>
+        <scroll-view v-if="userInfo" class="apply-scroll" scroll-y show-scrollbar="false">
+            <!-- 用户信息卡片 -->
+            <view class="apply-user-card" @click="goToProfile">
+                <view class="apply-user-card__avatar-wrap">
+                    <image class="apply-user-card__avatar" :src="userInfo.avatar" mode="aspectFill" />
+                    <view class="apply-user-card__auth" v-if="userInfo.auth?.realName">
+                        <text class="icon icon-check"></text>
+                    </view>
                 </view>
-            </view>
-            <view class="apply-user-card__info">
-                <view class="apply-user-card__name-row">
-                    <text class="apply-user-card__name">{{ userInfo.name }}</text>
-                    <text class="apply-user-card__gender" :class="userInfo.gender === 'female' ? 'is-female' : 'is-male'">
-                        {{ userInfo.gender === 'female' ? '♀' : '♂' }}
+                <view class="apply-user-card__info">
+                    <view class="apply-user-card__name-row">
+                        <text class="apply-user-card__name">{{ userInfo.name }}</text>
+                        <text class="apply-user-card__gender is-female">♀</text>
+                    </view>
+                    <text class="apply-user-card__meta">
+                        {{ userInfo.age }}岁 · {{ userInfo.occupation }} · {{ userInfo.district }}
                     </text>
+                    <view class="apply-user-card__badges">
+                        <text v-if="userInfo.auth?.realName" class="badge badge--real">实名认证</text>
+                        <text v-if="userInfo.auth?.education" class="badge badge--edu">学历认证</text>
+                        <text v-if="userInfo.auth?.work" class="badge badge--work">工作认证</text>
+                    </view>
                 </view>
-                <text class="apply-user-card__meta">
-                    {{ userInfo.age }}岁 · {{ userInfo.occupation }} · {{ userInfo.district }}
-                </text>
-                <view class="apply-user-card__badges">
-                    <text v-if="userInfo.auth.realName" class="badge badge--real">实名认证</text>
-                    <text v-if="userInfo.auth.education" class="badge badge--edu">学历认证</text>
-                    <text v-if="userInfo.auth.work" class="badge badge--work">工作认证</text>
+                <text class="apply-user-card__arrow icon icon-arrow-right"></text>
+            </view>
+
+            <!-- 3.4.3 接收方卡片顶部：缘分契合点高亮 -->
+            <view v-if="fatePoint" class="apply-fate">
+                <text class="apply-fate__icon">✨</text>
+                <text class="apply-fate__text">{{ fatePoint }}</text>
+            </view>
+
+            <!-- 未双向匹配 -->
+            <view v-if="!isMatched" class="apply-block">
+                <text class="apply-block__icon">💫</text>
+                <text class="apply-block__title">还没互相心动</text>
+                <text class="apply-block__desc">{{ businessCopy.blocked }}</text>
+                <button class="apply-block__btn" @click="goToMatch">去匹配</button>
+            </view>
+
+            <!-- ===== 状态 A：我收到对方的申请，待处理 ===== -->
+            <view v-else-if="incoming" class="apply-card">
+                <view class="apply-card__head">
+                    <text class="apply-card__title">对方申请交换微信</text>
+                    <view class="apply-countdown">
+                        <text class="apply-countdown__icon">⏳</text>
+                        <text class="apply-countdown__text">{{ formatRemain(remainIncoming) }}自动过期</text>
+                    </view>
+                </view>
+
+                <view class="apply-message-view">
+                    <text class="apply-message-view__label">Ta 的留言</text>
+                    <text class="apply-message-view__text">{{ incoming.message || '（没有留言）' }}</text>
+                </view>
+
+                <view class="apply-card__actions">
+                    <button class="apply-card__btn apply-card__btn--ghost" @click="handleReject">拒绝</button>
+                    <button class="apply-card__btn apply-card__btn--primary" @click="handleAgree">同意交换</button>
+                </view>
+                <text class="apply-card__tip">同意后双方将互相展示微信号</text>
+            </view>
+
+            <!-- ===== 状态 B：我已发出申请，等待处理 ===== -->
+            <view v-else-if="outgoing && outgoing.status === 'pending'" class="apply-card">
+                <view class="apply-card__head">
+                    <text class="apply-card__title">申请已发送</text>
+                    <view class="apply-countdown">
+                        <text class="apply-countdown__icon">⏳</text>
+                        <text class="apply-countdown__text">{{ formatRemain(remainOutgoing) }}自动过期</text>
+                    </view>
+                </view>
+                <text class="apply-card__desc">申请已送达，等待对方确认</text>
+                <view class="apply-message-view">
+                    <text class="apply-message-view__label">我的留言</text>
+                    <text class="apply-message-view__text">{{ outgoing.message || '（没有留言）' }}</text>
+                </view>
+                <text class="apply-card__tip">3 天内未处理将自动过期，7 天内仅可对同一人发起 1 次申请</text>
+            </view>
+
+            <!-- ===== 状态 C：已同意，展示双方微信号 ===== -->
+            <view v-else-if="wechatAgreed" class="apply-card apply-card--success">
+                <text class="apply-card__icon">🎉</text>
+                <text class="apply-card__title apply-card__title--center">微信已交换成功</text>
+                <text class="apply-card__desc apply-card__desc--center">加个好友，从一句你好开始</text>
+
+                <view class="apply-wechat">
+                    <text class="apply-wechat__label">Ta 的微信号</text>
+                    <text class="apply-wechat__value">{{ otherWechat }}</text>
+                    <button class="apply-wechat__copy" @click="copyWechat(otherWechat)">一键复制</button>
+                </view>
+                <view class="apply-wechat">
+                    <text class="apply-wechat__label">我的微信号</text>
+                    <text class="apply-wechat__value">{{ matchStore.myWechat }}</text>
+                    <button class="apply-wechat__copy" @click="copyWechat(matchStore.myWechat)">复制</button>
+                </view>
+
+                <view class="apply-safe">
+                    <text class="apply-safe__icon">🛡</text>
+                    <text class="apply-safe__text">{{ wechatSafetyCopy }}</text>
                 </view>
             </view>
-        </view>
 
-        <!-- 匹配状态提示 - 已申请/已同意/已拒绝时隐藏 -->
-        <view class="apply-match-status" v-if="isMatched && !isApplied && !isAgreed && !isRejected">
-            <text class="apply-match-status__icon">💕</text>
-            <text class="apply-match-status__text">你们已双向匹配，可以申请交换微信了</text>
-        </view>
-
-        <!-- 招呼语区域 - 已申请/已同意/已拒绝时隐藏 -->
-        <view class="apply-greeting" v-if="isMatched && !isApplied && !isAgreed && !isRejected">
-            <view class="apply-greeting__header">
-                <text class="apply-greeting__title">{{ isHandling ? '对方招呼语' : '发送招呼语' }}</text>
-                <text class="apply-greeting__count" v-if="!isHandling">{{ greetingLength }}/20</text>
-            </view>
-            <textarea v-if="isHandling"
-                      class="apply-greeting__input apply-greeting__input--readonly"
-                      :value="otherGreeting"
-                      readonly
-                      disabled />
-            <textarea v-else
-                      class="apply-greeting__input"
-                      v-model="greeting"
-                      placeholder="说点什么吧，让对方更了解你（20字以内）"
-                      maxlength="20"
-                      @input="onGreetingInput"
-                      :disabled="isApplied || isHandling" />
-            <text v-if="!isHandling" class="apply-greeting__hint">💡 一句真诚的打招呼，申请通过率更高哦</text>
-        </view>
-
-        <!-- 状态展示区 -->
-        <view class="apply-status" v-if="isApplied || isHandling || isAgreed || isRejected">
-            <!-- 已申请待处理 -->
-            <view v-if="isApplied" class="apply-status__full apply-status__pending">
-                <text class="apply-status__icon">⏳</text>
-                <text class="apply-status__title">申请已发送</text>
-                <text class="apply-status__desc">等待对方确认，请耐心等待</text>
+            <!-- ===== 状态 D：已过期 / 已拒绝 ===== -->
+            <view v-else-if="terminalState" class="apply-block">
+                <text class="apply-block__icon">{{ terminalState.icon }}</text>
+                <text class="apply-block__title">{{ terminalState.title }}</text>
+                <text class="apply-block__desc">{{ terminalState.desc }}</text>
+                <button class="apply-block__btn apply-block__btn--ghost" @click="goBack">返回</button>
             </view>
 
-            <!-- 处理别人的申请 -->
-            <view v-if="isHandling" class="apply-status__handle">
-                <text class="apply-status__title">对方申请交换微信</text>
-                <text class="apply-status__desc">同意后将互相展示微信号</text>
-                <view class="apply-status__actions">
-                    <button class="apply-status__btn apply-status__btn--reject" @click="handleReject">拒绝</button>
-                    <button class="apply-status__btn apply-status__btn--agree" @click="handleAgree">同意</button>
+            <!-- ===== 状态 E：可发起申请 ===== -->
+            <template v-else>
+                <view class="apply-message">
+                    <view class="apply-message__header">
+                        <text class="apply-message__title">申请留言（选填）</text>
+                        <text class="apply-message__count">{{ message.length }}/20</text>
+                    </view>
+                    <textarea class="apply-message__input"
+                              v-model="message"
+                              placeholder="可留一句话让对方更了解你（选填，20 字内）"
+                              maxlength="20"
+                              @input="onMessageInput" />
+                    <text v-if="messageError" class="apply-message__error">{{ messageError }}</text>
+                    <text v-else class="apply-message__hint">💡 一句真诚的留言，申请通过率更高哦</text>
                 </view>
-            </view>
 
-            <!-- 已同意 - 全屏留白 -->
-            <view v-if="isAgreed" class="apply-status__full apply-status__agreed">
-                <text class="apply-status__icon">✅</text>
-                <text class="apply-status__title">已同意申请</text>
-                <text class="apply-status__desc">微信号已互相展示，快去添加好友吧</text>
-                <view class="apply-status__wechat" v-if="myWechat">
-                    <text class="apply-status__wechat-label">我的微信号</text>
-                    <text class="apply-status__wechat-value">{{ myWechat }}</text>
-                    <button class="apply-status__wechat-copy" @click="copyWechat">复制</button>
+                <view class="apply-rules">
+                    <view class="apply-rules__item">
+                        <text class="apply-rules__dot">•</text>
+                        <text class="apply-rules__text">申请有效期 3 天，超时自动过期</text>
+                    </view>
+                    <view class="apply-rules__item">
+                        <text class="apply-rules__dot">•</text>
+                        <text class="apply-rules__text">7 天内对同一人仅可发起 1 次申请</text>
+                    </view>
+                    <view class="apply-rules__item">
+                        <text class="apply-rules__dot">•</text>
+                        <text class="apply-rules__text">同意后双方互相展示微信号</text>
+                    </view>
                 </view>
-                <view class="apply-status__wechat" v-if="otherWechat">
-                    <text class="apply-status__wechat-label">Ta的微信号</text>
-                    <text class="apply-status__wechat-value">{{ otherWechat }}</text>
-                    <button class="apply-status__wechat-copy" @click="copyWechat(otherWechat)">复制</button>
-                </view>
-            </view>
+            </template>
+        </scroll-view>
 
-            <!-- 已拒绝 - 全屏留白 -->
-            <view v-if="isRejected" class="apply-status__full apply-status__rejected">
-                <text class="apply-status__icon">😔</text>
-                <text class="apply-status__title">申请已拒绝</text>
-                <text class="apply-status__desc">您已拒绝了对方的微信申请</text>
-            </view>
-        </view>
-
-        <!-- 底部按钮 - 仅初始状态显示（未申请、未处理） -->
-        <view class="apply-footer" v-if="isMatched && !isApplied && !isHandling && !isAgreed && !isRejected">
+        <!-- 底部按钮：仅可发起时显示 -->
+        <view v-if="canSubmit" class="apply-footer">
             <view class="apply-footer__risk">
                 <text class="apply-footer__risk-icon">⚠️</text>
-                <text class="apply-footer__risk-text">
-                    平台仅提供联系方式交换渠道，请勿向对方转账、投资、刷单，谨防诈骗
-                </text>
+                <text class="apply-footer__risk-text">{{ antiFraudTips.apply }}</text>
             </view>
-
             <button class="apply-footer__btn" @click="submitApply">
                 <text class="icon icon-wechat"></text>
                 申请交换微信
             </button>
         </view>
 
-        <!-- 加载状态 -->
-        <view v-if="loading" class="apply-loading">
-            <text>加载中...</text>
-        </view>
-
-        <!-- 风险确认弹框 -->
-        <RiskModal v-model:visible="showRiskModal" @confirm="doConfirmAction" />
+        <!-- 强制反诈风险弹窗：点击【已知晓】才可提交（文档 3.4.3） -->
+        <RiskModal v-model:visible="showRiskModal" @confirm="doSubmitApply" />
     </view>
 </template>
 
 <script setup>
-    import { ref, computed, onMounted } from 'vue'
+    import { ref, computed } from 'vue'
+    import { onLoad, onShow } from '@dcloudio/uni-app'
     import RiskModal from '@/components/common/RiskModal.vue'
+    import { useMatchStore } from '@/store/index'
+    import { businessCopy, wechatSafetyCopy, antiFraudTips } from '@/mock/copy'
+    import { findUserById } from '@/mock/users'
+    import { detectContact, formatRemain, APPLY_COOLDOWN } from '@/store/match'
 
-    const userId = ref('')
-    const applyType = ref('')
-    const resultStatus = ref('') // 'agreed' | 'rejected' | ''
+    const matchStore = useMatchStore()
 
-    onMounted(() => {
-        const pages = getCurrentPages()
-        const currentPage = pages[pages.length - 1]
-        userId.value = currentPage.options.userId || ''
-        applyType.value = currentPage.options.type || ''
-        resultStatus.value = currentPage.options.result || '' // 新增：直接进入结果状态
-        loadData()
-    })
-
-    const loading = ref(false)
-    const greeting = ref('')
-    const isApplied = ref(false)
-    const isHandling = ref(false)
-    const isAgreed = ref(false)
-    const isRejected = ref(false)
+    const userId = ref(0)
+    const userInfo = ref(null)
+    const message = ref('')
+    const messageError = ref('')
     const showRiskModal = ref(false)
-    const actionType = ref('')
 
-    const remainQuota = ref(8)
-    const equityQuota = ref(5)
-
-    const myWechat = ref('xiaolu_2024')
-
-    const userInfo = ref({
-        id: 4,
-        name: '林小鹿',
-        gender: 'female',
-        age: 24,
-        occupation: '产品经理',
-        district: '朝阳区',
-        avatar: 'https://picsum.photos/200/200?random=101',
-        auth: { realName: true, education: true, work: false }
+    onLoad((options) => {
+        userId.value = Number(options?.userId || 0)
+        userInfo.value = findUserById(userId.value)
     })
 
-    const otherWechat = ref('')
-    const otherGreeting = ref('你好呀，觉得我们很合适，想进一步了解你')
+    onShow(() => {
+        matchStore.restore()
+        // 进入页面即校验 3 天过期
+        matchStore.expireCheck()
+    })
 
-    const pageTitle = computed(() => {
-        if (resultStatus.value === 'agreed' || resultStatus.value === 'rejected') {
-            return '申请详情'
+    const isMatched = computed(() => matchStore.isMatched(userId.value))
+    const relation = computed(() => matchStore.getMatch(userId.value))
+    const fatePoint = computed(() => matchStore.getFatePoint(userId.value))
+    const wechatAgreed = computed(() => relation.value?.wechatStatus === 'agreed')
+    const otherWechat = computed(() => matchStore.getWechatOf(userId.value))
+
+    // 我收到的待处理申请
+    const incoming = computed(() => matchStore.getIncomingApplication(userId.value))
+    // 我发出的最近一条申请
+    const outgoing = computed(() => {
+        const list = matchStore.sentApplications.filter(item => Number(item.toUserId) === userId.value)
+        return list[0] || null
+    })
+
+    const remainIncoming = computed(() => {
+        const item = incoming.value
+        return item ? Math.max(0, item.expiresAt - Date.now()) : 0
+    })
+    const remainOutgoing = computed(() => {
+        const item = outgoing.value
+        return item ? Math.max(0, item.expiresAt - Date.now()) : 0
+    })
+
+    // 终态：过期 / 被拒绝（7 天冷却已过的过期申请直接回到可申请状态）
+    const terminalState = computed(() => {
+        const item = outgoing.value
+        if (!item || item.status === 'pending') return null
+        if (item.status === 'expired') {
+            if (matchStore.canApplyWechat(userId.value).ok) return null
+            return { icon: '🌙', title: '申请已过期', desc: businessCopy.applyExpired }
         }
-        return applyType.value === 'handle' ? '处理申请' : '申请微信'
+        if (item.status === 'rejected') {
+            return { icon: '😔', title: '对方暂未回应', desc: businessCopy.applyNoResponse }
+        }
+        return null
     })
 
-    const isMatched = computed(() => {
+    // 是否可提交申请
+    const canSubmit = computed(() => {
+        if (!isMatched.value || wechatAgreed.value) return false
+        if (incoming.value) return false
+        if (terminalState.value) return false
         return true
     })
 
-    const greetingLength = computed(() => {
-        return greeting.value.length
-    })
-
-    const loadData = () => {
-        loading.value = true
-        setTimeout(() => {
-            // 处理直接从结果状态进入
-            if (resultStatus.value === 'agreed') {
-                isAgreed.value = true
-                otherWechat.value = 'linxiaolu_2024'
-                // 模拟加载用户信息
-                userInfo.value = {
-                    id: 4,
-                    name: '林小鹿',
-                    gender: 'female',
-                    age: 24,
-                    occupation: '产品经理',
-                    district: '朝阳区',
-                    avatar: 'https://picsum.photos/200/200?random=101',
-                    auth: { realName: true, education: true, work: false }
-                }
-                loading.value = false
-                return
-            }
-
-            if (resultStatus.value === 'rejected') {
-                isRejected.value = true
-                userInfo.value = {
-                    id: 4,
-                    name: '林小鹿',
-                    gender: 'female',
-                    age: 24,
-                    occupation: '产品经理',
-                    district: '朝阳区',
-                    avatar: 'https://picsum.photos/200/200?random=101',
-                    auth: { realName: true, education: true, work: false }
-                }
-                loading.value = false
-                return
-            }
-
-            // 正常流程
-            if (applyType.value === 'handle') {
-                isHandling.value = true
-                otherGreeting.value = '你好呀，觉得我们很合适，想进一步了解你'
-            }
-            loading.value = false
-        }, 500)
-    }
-
-    const goBack = () => {
-        uni.navigateBack()
-    }
-
-    // 跳转个人主页
-    const goToProfile = () => {
-        uni.navigateTo({
-            url: `/pages/user/profile?userId=${userInfo.value.id}`
-        })
-    }
-
-    const onGreetingInput = (e) => {
-        greeting.value = e.detail.value
+    const onMessageInput = (e) => {
+        message.value = e.detail.value
+        messageError.value = ''
     }
 
     const submitApply = () => {
-        if (remainQuota.value <= 0 && equityQuota.value <= 0) {
-            uni.showToast({
-                title: '今日申请次数已用完',
-                icon: 'none'
+        const text = message.value.trim()
+        // 留言选填，但最多 20 字且不得包含联系方式
+        if (text.length > 20) {
+            messageError.value = '留言最多 20 字'
+            return
+        }
+        // 3.4.4 全域导流拦截
+        if (text && detectContact(text)) {
+            messageError.value = businessCopy.contactInGreeting
+            return
+        }
+        const check = matchStore.canApplyWechat(userId.value)
+        if (!check.ok) {
+            uni.showModal({
+                title: '暂时无法申请',
+                content: check.reason === 'cooldown'
+                    ? `同一用户 7 天内仅可发起 1 次申请，${formatRemain(check.remain)}后可再次申请`
+                    : check.reason === 'pending'
+                        ? '申请已送达，等待对方确认'
+                        : businessCopy.blocked,
+                showCancel: false
             })
             return
         }
-
-        if (!greeting.value.trim()) {
-            uni.showToast({
-                title: '请先发送一句招呼语',
-                icon: 'none'
-            })
-            return
-        }
-
-        actionType.value = 'apply'
+        // 强制反诈风险弹窗
         showRiskModal.value = true
-    }
-
-    const doConfirmAction = () => {
-        if (actionType.value === 'apply') {
-            doSubmitApply()
-        } else if (actionType.value === 'agree') {
-            doAgree()
-        }
-        actionType.value = ''
     }
 
     const doSubmitApply = () => {
-        loading.value = true
-        setTimeout(() => {
-            loading.value = false
-            isApplied.value = true
-
-            if (remainQuota.value > 0) {
-                remainQuota.value--
-            } else if (equityQuota.value > 0) {
-                equityQuota.value--
-            }
-
-            uni.showToast({
-                title: '申请已发送',
-                icon: 'success'
-            })
-        }, 1000)
+        const result = matchStore.applyWechat(userId.value, message.value.trim())
+        if (!result.ok) {
+            uni.showToast({ title: '申请提交失败，请稍后再试', icon: 'none' })
+            return
+        }
+        uni.showToast({ title: '申请已发送', icon: 'success' })
     }
 
     const handleAgree = () => {
-        actionType.value = 'agree'
-        showRiskModal.value = true
-    }
-
-    const doAgree = () => {
-        loading.value = true
-        setTimeout(() => {
-            loading.value = false
-            isHandling.value = false
-            isAgreed.value = true
-            otherWechat.value = 'linxiaolu_2024'
-
-            uni.showToast({
-                title: '已同意，双方微信号已展示',
-                icon: 'success'
-            })
-        }, 1000)
-    }
-
-    const handleReject = () => {
+        const item = incoming.value
+        if (!item) return
         uni.showModal({
-            title: '拒绝申请',
-            content: `确认拒绝「${userInfo.value.name}」的微信申请吗？`,
-            confirmText: '拒绝',
-            confirmColor: '#FF4757',
+            title: '同意交换微信',
+            content: `同意后你和「${userInfo.value?.name}」将互相展示微信号`,
+            confirmText: '同意',
             success: (res) => {
-                if (res.confirm) {
-                    doReject()
+                if (!res.confirm) return
+                const result = matchStore.agreeApplication(item.id)
+                if (result.ok) {
+                    uni.showToast({ title: '已同意，微信号已展示', icon: 'success' })
                 }
             }
         })
     }
 
-    const doReject = () => {
-        loading.value = true
-        setTimeout(() => {
-            loading.value = false
-            isHandling.value = false
-            isRejected.value = true
-            uni.showToast({
-                title: '已拒绝',
-                icon: 'none'
-            })
-        }, 500)
-    }
-
-    const copyWechat = (wechat) => {
-        const text = wechat || myWechat.value
-        uni.setClipboardData({
-            data: text,
-            success: () => {
-                uni.showToast({
-                    title: '已复制微信号',
-                    icon: 'success'
-                })
+    const handleReject = () => {
+        const item = incoming.value
+        if (!item) return
+        uni.showModal({
+            title: '拒绝申请',
+            content: `确认拒绝「${userInfo.value?.name}」的微信申请吗？`,
+            confirmText: '拒绝',
+            confirmColor: '#FF4757',
+            success: (res) => {
+                if (!res.confirm) return
+                matchStore.rejectApplication(item.id)
+                uni.showToast({ title: '已拒绝', icon: 'none' })
             }
         })
     }
+
+    const copyWechat = (value) => {
+        if (!value) return
+        uni.setClipboardData({
+            data: value,
+            success: () => uni.showToast({ title: '微信号已复制', icon: 'success' })
+        })
+    }
+
+    const goBack = () => uni.navigateBack()
+    const goToProfile = () => uni.navigateTo({ url: `/pages/user/profile?userId=${userId.value}` })
+    const goToMatch = () => uni.switchTab({ url: '/pages/match/index' })
+
 </script>
 
 <style lang="scss" scoped>
@@ -366,21 +335,19 @@
     @import '@/styles/mixins.scss';
 
     .apply-page {
-        min-height: 100vh;
-        background-color: $bg-page;
+        height: 100vh;
         display: flex;
         flex-direction: column;
+        background-color: $bg-page;
     }
 
-    // ===== 导航栏 =====
     .apply-navbar {
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 14px $page-padding-x;
         padding-top: calc(14px + env(safe-area-inset-top));
-        background-color: rgba(255, 255, 255, 0.92);
-        backdrop-filter: blur(10px);
+        background-color: rgba(255, 255, 255, 0.94);
         border-bottom: 1px solid $border-light;
         flex-shrink: 0;
 
@@ -388,7 +355,6 @@
             width: 32px;
             font-size: 20px;
             color: $text-primary;
-            cursor: pointer;
         }
 
         &__title {
@@ -402,17 +368,21 @@
         }
     }
 
-    // ===== 用户信息卡片 =====
+    .apply-scroll {
+        flex: 1;
+        min-height: 0;
+    }
+
+    // ===== 用户卡片 =====
     .apply-user-card {
         display: flex;
+        align-items: center;
         gap: 14px;
         background-color: $bg-card;
         margin: 12px $page-padding-x;
         padding: $spacing-md;
         border-radius: $radius-card;
         box-shadow: $shadow-card;
-        flex-shrink: 0;
-        cursor: pointer;
 
         &__avatar-wrap {
             position: relative;
@@ -420,8 +390,8 @@
         }
 
         &__avatar {
-            width: 64px;
-            height: 64px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
             background-color: $bg-page;
         }
@@ -458,21 +428,17 @@
         }
 
         &__name {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: $font-weight-medium;
             color: $text-primary;
         }
 
         &__gender {
-            font-size: 16px;
+            font-size: 15px;
             line-height: 1;
 
             &.is-female {
                 color: #FF6B81;
-            }
-
-            &.is-male {
-                color: #4FACFE;
             }
         }
 
@@ -487,6 +453,12 @@
             display: flex;
             gap: 4px;
             flex-wrap: wrap;
+        }
+
+        &__arrow {
+            font-size: 14px;
+            color: $text-helper;
+            flex-shrink: 0;
         }
     }
 
@@ -510,202 +482,187 @@
         }
     }
 
-    // ===== 匹配状态 =====
-    .apply-match-status {
+    // ===== 缘分契合点 =====
+    .apply-fate {
         display: flex;
-        align-items: center;
-        gap: 8px;
+        align-items: flex-start;
+        gap: 6px;
         margin: 0 $page-padding-x 12px;
         padding: 10px 14px;
-        background: linear-gradient(135deg, rgba(255, 107, 129, 0.08), rgba(255, 107, 129, 0.02));
         border-radius: 10px;
-        border: 1px solid rgba(255, 107, 129, 0.2);
-        flex-shrink: 0;
+        background: linear-gradient(135deg, rgba(255, 196, 160, 0.22), rgba(255, 154, 178, 0.12));
+        border: 1px solid rgba(255, 160, 122, 0.35);
 
         &__icon {
-            font-size: 20px;
+            font-size: 13px;
+            flex-shrink: 0;
+            margin-top: 1px;
         }
 
         &__text {
-            font-size: $font-size-sm;
-            color: $text-secondary;
             flex: 1;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #C2703F;
         }
     }
 
-    // ===== 招呼语 - 紧凑 =====
-    .apply-greeting {
+    // ===== 通用卡片 =====
+    .apply-card {
         background-color: $bg-card;
         margin: 0 $page-padding-x 12px;
-        padding: $spacing-sm $spacing-md;
+        padding: $spacing-lg;
         border-radius: $radius-card;
         box-shadow: $shadow-card;
-        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
 
-        &__header {
+        &--success {
+            align-items: center;
+        }
+
+        &__head {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 4px;
+            margin-bottom: 12px;
+        }
+
+        &__icon {
+            font-size: 40px;
+            margin-bottom: 8px;
         }
 
         &__title {
-            font-size: $font-size-sm;
+            font-size: $font-size-md;
             font-weight: $font-weight-medium;
             color: $text-primary;
+
+            &--center {
+                text-align: center;
+                margin-bottom: 6px;
+            }
         }
 
-        &__count {
-            font-size: 12px;
-            color: $text-helper;
-        }
-
-        &__input {
-            width: 100%;
-            min-height: 42px;
-            max-height: 65px;
-            padding: 6px 12px;
+        &__desc {
             font-size: $font-size-sm;
-            color: $text-primary;
-            background-color: $bg-page;
-            border-radius: $radius-sm;
-            border: 1px solid $border-light;
-            box-sizing: border-box;
-            resize: none;
+            color: $text-helper;
+            line-height: 1.6;
 
-            &:focus {
-                border-color: $primary-color;
-                outline: none;
-            }
-
-            &:disabled {
-                background-color: $bg-page;
-                color: $text-helper;
-            }
-
-            &--readonly {
-                background-color: $bg-page;
-                color: $text-secondary;
-                cursor: default;
+            &--center {
+                text-align: center;
+                margin-bottom: 18px;
             }
         }
 
-        &__hint {
-            display: block;
-            margin-top: 4px;
+        &__actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        &__btn {
+            flex: 1;
+            height: 44px;
+            border-radius: 22px;
+            font-size: $font-size-sm;
+            font-weight: $font-weight-medium;
+            border: none;
+
+            &--primary {
+                color: #FFFFFF;
+                background: linear-gradient(90deg, $primary-color, #9DB48E);
+                box-shadow: $shadow-btn;
+            }
+
+            &--ghost {
+                color: $text-secondary;
+                background-color: $bg-page;
+                border: 1px solid $border-light;
+            }
+
+            &:active {
+                opacity: 0.85;
+            }
+        }
+
+        &__tip {
+            margin-top: 12px;
             font-size: 11px;
             color: $text-helper;
+            text-align: center;
+            line-height: 1.5;
         }
     }
 
-    // ===== 状态展示 =====
-    .apply-status {
-        flex: 1;
-        padding: 0 $page-padding-x;
+    // ===== 倒计时 =====
+    .apply-countdown {
         display: flex;
-        flex-direction: column;
-    }
-
-    .apply-status__pending,
-    .apply-status__handle {
-        display: flex;
-        flex-direction: column;
         align-items: center;
-        padding: 20px;
-        background-color: $bg-card;
-        border-radius: $radius-card;
-        box-shadow: $shadow-card;
-        text-align: center;
-    }
+        gap: 3px;
+        padding: 3px 9px;
+        border-radius: 10px;
+        background-color: rgba(255, 167, 38, 0.12);
 
-    // ===== 已同意 / 已拒绝 - 全屏留白，白色背景 =====
-    .apply-status__full {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        flex: 1;
-        padding: 16px;
-        background-color: #FFFFFF;
-        border-radius: 0;
-        box-shadow: none;
-        text-align: center;
-        min-height: calc(100vh - 200px);
-    }
-
-    .apply-status__icon {
-        font-size: 48px;
-        margin-bottom: 12px;
-    }
-
-    .apply-status__title {
-        font-size: $font-size-lg;
-        font-weight: $font-weight-medium;
-        color: $text-primary;
-        margin-bottom: 4px;
-    }
-
-    .apply-status__desc {
-        font-size: $font-size-sm;
-        color: $text-helper;
-        margin-bottom: 16px;
-    }
-
-    .apply-status__actions {
-        display: flex;
-        gap: 12px;
-        width: 100%;
-        margin-top: 8px;
-    }
-
-    .apply-status__btn {
-        flex: 1;
-        padding: 10px 0;
-        border-radius: 24px;
-        font-size: $font-size-sm;
-        border: none;
-
-        &--agree {
-            background: linear-gradient(90deg, $primary-color, #9DB48E);
-            color: #FFFFFF;
+        &__icon {
+            font-size: 10px;
         }
 
-        &--reject {
-            background-color: $bg-page;
-            color: $text-secondary;
-            border: 1px solid $border-light;
+        &__text {
+            font-size: 10px;
+            color: #E08A00;
         }
     }
 
-    .apply-status__wechat {
+    // ===== 申请留言展示 =====
+    .apply-message-view {
+        margin-top: 12px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background-color: $bg-page;
+
+        &__label {
+            display: block;
+            font-size: 10px;
+            color: $text-helper;
+            margin-bottom: 4px;
+        }
+
+        &__text {
+            font-size: 13px;
+            color: $text-primary;
+            line-height: 1.6;
+        }
+    }
+
+    // ===== 微信号展示 =====
+    .apply-wechat {
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 10px 14px;
-        background-color: $bg-page;
-        border-radius: 8px;
         width: 100%;
-        margin-bottom: 8px;
+        padding: 12px 14px;
+        margin-bottom: 10px;
+        border-radius: 10px;
+        background-color: $bg-page;
 
-        &:last-child {
-            margin-bottom: 0;
-        }
-
-        &-label {
-            font-size: 12px;
+        &__label {
+            font-size: 11px;
             color: $text-helper;
+            flex-shrink: 0;
         }
 
-        &-value {
+        &__value {
             flex: 1;
             font-size: $font-size-sm;
-            color: $text-primary;
             font-weight: $font-weight-medium;
+            color: $text-primary;
             text-align: center;
+            letter-spacing: 0.5px;
         }
 
-        &-copy {
-            padding: 2px 12px;
+        &__copy {
+            padding: 3px 12px;
             font-size: 11px;
             color: $primary-color;
             background-color: $primary-light-bg;
@@ -715,24 +672,183 @@
         }
     }
 
+    // ===== 安全兜底 =====
+    .apply-safe {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        width: 100%;
+        margin-top: 6px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background-color: rgba(46, 213, 115, 0.06);
+
+        &__icon {
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        &__text {
+            flex: 1;
+            font-size: 11px;
+            color: $text-helper;
+            line-height: 1.5;
+        }
+    }
+
+    // ===== 申请留言输入 =====
+    .apply-message {
+        background-color: $bg-card;
+        margin: 0 $page-padding-x 12px;
+        padding: $spacing-md;
+        border-radius: $radius-card;
+        box-shadow: $shadow-card;
+
+        &__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        &__title {
+            font-size: $font-size-sm;
+            font-weight: $font-weight-medium;
+            color: $text-primary;
+        }
+
+        &__count {
+            font-size: 11px;
+            color: $text-helper;
+        }
+
+        &__input {
+            width: 100%;
+            min-height: 48px;
+            padding: 8px 12px;
+            font-size: $font-size-sm;
+            color: $text-primary;
+            background-color: $bg-page;
+            border-radius: $radius-sm;
+            border: 1px solid $border-light;
+            box-sizing: border-box;
+        }
+
+        &__hint {
+            display: block;
+            margin-top: 6px;
+            font-size: 11px;
+            color: $text-helper;
+        }
+
+        &__error {
+            display: block;
+            margin-top: 6px;
+            font-size: 11px;
+            color: #FF4757;
+            line-height: 1.5;
+        }
+    }
+
+    // ===== 规则说明 =====
+    .apply-rules {
+        margin: 0 $page-padding-x 16px;
+        padding: 12px 14px;
+        border-radius: 10px;
+        background-color: rgba(255, 255, 255, 0.7);
+
+        &__item {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            margin-bottom: 6px;
+
+            &:last-child {
+                margin-bottom: 0;
+            }
+        }
+
+        &__dot {
+            font-size: 11px;
+            color: $text-helper;
+            line-height: 1.6;
+        }
+
+        &__text {
+            flex: 1;
+            font-size: 11px;
+            color: $text-helper;
+            line-height: 1.6;
+        }
+    }
+
+    // ===== 未匹配 / 终态块 =====
+    .apply-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 0 $page-padding-x;
+        padding: 36px 24px;
+        background-color: $bg-card;
+        border-radius: $radius-card;
+        box-shadow: $shadow-card;
+        text-align: center;
+
+        &__icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        &__title {
+            font-size: $font-size-md;
+            font-weight: $font-weight-medium;
+            color: $text-primary;
+            margin-bottom: 6px;
+        }
+
+        &__desc {
+            font-size: $font-size-sm;
+            color: $text-helper;
+            line-height: 1.6;
+            margin-bottom: 18px;
+        }
+
+        &__btn {
+            min-width: 160px;
+            height: 42px;
+            padding: 0 24px;
+            border-radius: 21px;
+            font-size: $font-size-sm;
+            color: #FFFFFF;
+            background: linear-gradient(90deg, $primary-color, #9DB48E);
+            border: none;
+
+            &--ghost {
+                color: $text-secondary;
+                background-color: $bg-page;
+                border: 1px solid $border-light;
+            }
+        }
+    }
+
     // ===== 底部 =====
     .apply-footer {
-        padding: 12px $page-padding-x calc(12px + env(safe-area-inset-bottom));
+        flex-shrink: 0;
+        padding: 10px $page-padding-x calc(10px + env(safe-area-inset-bottom));
         background-color: $bg-card;
         border-top: 1px solid $border-light;
-        flex-shrink: 0;
 
         &__risk {
             display: flex;
             align-items: flex-start;
             gap: 6px;
-            padding: 8px 12px;
+            padding: 7px 12px;
             background-color: rgba(255, 71, 87, 0.06);
             border-radius: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
 
             &-icon {
-                font-size: 14px;
+                font-size: 12px;
                 flex-shrink: 0;
                 margin-top: 1px;
             }
@@ -746,8 +862,8 @@
 
         &__btn {
             width: 100%;
-            padding: 12px 0;
-            border-radius: 24px;
+            height: 46px;
+            border-radius: 23px;
             background: linear-gradient(90deg, $primary-color, #9DB48E);
             color: #FFFFFF;
             font-size: $font-size-md;
@@ -764,40 +880,8 @@
             }
 
             .icon {
-                font-size: 18px;
+                font-size: 17px;
             }
         }
-
-        &__quota {
-            text-align: center;
-            margin-top: 8px;
-            font-size: 12px;
-            color: $text-helper;
-
-            &-num {
-                color: $primary-color;
-                font-weight: $font-weight-medium;
-            }
-
-            &-equity {
-                color: #FFB74D;
-            }
-        }
-    }
-
-    // ===== 加载 =====
-    .apply-loading {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: rgba(255, 255, 255, 0.8);
-        z-index: 999;
-        font-size: $font-size-sm;
-        color: $text-helper;
     }
 </style>

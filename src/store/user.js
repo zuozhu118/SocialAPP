@@ -1,79 +1,348 @@
 import { defineStore } from 'pinia'
+import { currentUserProfile } from '@/mock/users'
+import useEquityStore from './equity'
 
+const STORAGE_KEY = 'user_state_v2'
+
+// 单项认证奖励（3.2：学历/工作认证各 +5 次永久心动）
+export const CERT_REWARD_LIKES = 5
+
+// 安全读写本地存储（H5 / 小程序 / 编译期都能跑）
+const readCache = () => {
+    try {
+        return uni.getStorageSync(STORAGE_KEY) || null
+    } catch (e) {
+        return null
+    }
+}
+
+const writeCache = (data) => {
+    try {
+        uni.setStorageSync(STORAGE_KEY, data)
+    } catch (e) {
+        console.warn('[user] 本地缓存失败', e)
+    }
+}
+
+/**
+ * 用户状态
+ * 三级权限由 isLogin + authStatus.realName 推导，避免多处状态不一致：
+ *   guest      游客（未登录）
+ *   registered 注册未实名
+ *   certified  已实名
+ */
 export default defineStore('user', {
-  state: () => ({
-    // 用户基本信息
-    userInfo: null,
-    // 是否已登录
-    isLogin: false,
-    // 用户层级: guest | registered | certified
-    userLevel: 'guest',
-    // 认证状态
-    authStatus: {
-      realName: false,
-      education: false,
-      work: false
+    state: () => ({
+        // 用户基本信息
+        userInfo: null,
+        // 是否已登录
+        isLogin: false,
+        // 认证状态
+        authStatus: {
+            realName: false,
+            education: false,
+            work: false
+        },
+        // 认证详情（状态、时间、驳回原因）
+        verifications: {
+            realName: null,
+            education: null,
+            work: null
+        },
+        // 用户资料
+        profile: {
+            gender: '',
+            age: '',
+            city: '',
+            height: '',
+            emotionNeed: '',
+            bio: '',
+            hobbies: [],
+            tags: [],
+            photos: []
+        },
+        // 收藏心动（注册未实名用户的沉没成本机制）
+        favorites: [],
+        // 认证奖励是否已发放（学历 / 工作，防重复发放）
+        certRewarded: {
+            education: false,
+            work: false
+        }
+    }),
+
+    getters: {
+        // 当前权限层级
+        level: (state) => {
+            if (!state.isLogin) return 'guest'
+            return state.authStatus.realName ? 'certified' : 'registered'
+        },
+        userLevel() {
+            return this.level
+        },
+        isGuest() {
+            return this.level === 'guest'
+        },
+        isRegistered() {
+            return this.level === 'registered'
+        },
+        isCertified() {
+            return this.level === 'certified'
+        },
+        isRealNameAuth: (state) => state.authStatus.realName,
+        // 认证数量
+        authCount: (state) => {
+            let count = 0
+            if (state.authStatus.realName) count++
+            if (state.authStatus.education) count++
+            if (state.authStatus.work) count++
+            return count
+        },
+        // 是否双认证（学历 + 工作），优质推荐门槛之一
+        isDoubleVerified: (state) => state.authStatus.education && state.authStatus.work,
+        // 学历 / 工作认证状态：idle | pending | success | failed
+        certificationOf: (state) => (type) => {
+            if (state.authStatus[type]) return 'success'
+            const record = state.verifications[type]
+            return record?.status || 'idle'
+        },
+        // 用户显示名称
+        displayName: (state) => {
+            if (!state.userInfo) return '游客'
+            return state.userInfo.nickname || state.userInfo.name || '用户'
+        },
+        gender: (state) => state.profile.gender || 'male',
+        // 资料完整度（0-100）
+        profileCompleteness: (state) => {
+            const p = state.profile
+            const checks = [
+                !!state.userInfo?.avatar,
+                !!state.userInfo?.name,
+                !!p.gender,
+                !!p.age,
+                !!p.city,
+                !!p.height,
+                !!p.bio,
+                !!p.emotionNeed,
+                (p.tags || []).length >= 3,
+                (p.hobbies || []).length >= 3,
+                (p.photos || []).length >= 3,
+                state.authStatus.realName
+            ]
+            const filled = checks.filter(Boolean).length
+            return Math.round((filled / checks.length) * 100)
+        }
     },
-    // 用户资料
-    profile: {
-      gender: '',
-      age: '',
-      city: '',
-      height: '',
-      emotionNeed: '',
-      hobbies: [],
-      tags: []
+
+    actions: {
+        // ===== 初始化 / 持久化 =====
+        restore() {
+            const cache = readCache()
+            if (!cache) return
+            this.userInfo = cache.userInfo || null
+            this.isLogin = !!cache.isLogin
+            this.authStatus = { ...this.authStatus, ...(cache.authStatus || {}) }
+            this.verifications = { ...this.verifications, ...(cache.verifications || {}) }
+            this.profile = { ...this.profile, ...(cache.profile || {}) }
+            this.favorites = cache.favorites || []
+            this.certRewarded = { education: false, work: false, ...(cache.certRewarded || {}) }
+        },
+
+        persist() {
+            writeCache({
+                userInfo: this.userInfo,
+                isLogin: this.isLogin,
+                authStatus: this.authStatus,
+                verifications: this.verifications,
+                profile: this.profile,
+                favorites: this.favorites,
+                certRewarded: this.certRewarded
+            })
+        },
+
+        // ===== 登录（mock）=====
+        loginMock(level = 'registered') {
+            this.isLogin = true
+            this.userInfo = {
+                id: currentUserProfile.id,
+                name: currentUserProfile.name,
+                nickname: currentUserProfile.name,
+                avatar: currentUserProfile.avatar,
+                phone: '138****8888',
+                createTime: '2026-11-11'
+            }
+            this.profile = {
+                gender: currentUserProfile.gender,
+                age: currentUserProfile.age,
+                city: currentUserProfile.district,
+                height: currentUserProfile.height,
+                emotionNeed: '认真恋爱',
+                bio: currentUserProfile.bio,
+                hobbies: currentUserProfile.hobbyTags,
+                tags: currentUserProfile.personalityTags,
+                photos: currentUserProfile.album
+            }
+            if (level === 'certified') {
+                this.authStatus.realName = true
+                this.verifications.realName = { status: 'success', time: '2026-11-11 10:00' }
+            }
+            this.persist()
+        },
+
+        // ===== 兼容旧接口 =====
+        setUserInfo(info) {
+            this.userInfo = info
+            this.isLogin = true
+            this.persist()
+        },
+        setAuthStatus(type, status) {
+            if (!(type in this.authStatus)) return
+            this.authStatus[type] = status
+            this.persist()
+        },
+        updateProfile(data) {
+            this.profile = { ...this.profile, ...data }
+            this.persist()
+        },
+
+        // ===== 3.2 资质认证（学历 / 工作，人工审核 mock） =====
+        // 提交认证：仅实名用户可发起，凭证必填
+        submitCertification(type, payload = {}) {
+            if (type !== 'education' && type !== 'work') return { ok: false, reason: 'type' }
+            if (!this.isLogin) return { ok: false, reason: 'login' }
+            if (!this.authStatus.realName) return { ok: false, reason: 'realname' }
+            if (!payload.credential) return { ok: false, reason: 'credential' }
+            this.verifications[type] = {
+                status: 'pending',
+                method: payload.method || '',
+                credential: payload.credential,
+                company: payload.company || '',
+                position: payload.position || '',
+                submittedAt: Date.now(),
+                handledAt: 0,
+                reason: ''
+            }
+            this.persist()
+            return { ok: true }
+        },
+
+        // 运营审核通过：点亮标识 + 首次发放 5 次永久心动
+        approveCertification(type) {
+            if (type !== 'education' && type !== 'work') return { ok: false }
+            const record = this.verifications[type] || {}
+            this.verifications[type] = {
+                ...record,
+                status: 'success',
+                handledAt: Date.now(),
+                reason: ''
+            }
+            this.authStatus[type] = true
+            let rewarded = 0
+            if (!this.certRewarded[type]) {
+                const equity = useEquityStore()
+                equity.addPermanentLikes(CERT_REWARD_LIKES, type === 'education' ? '学历认证' : '工作认证')
+                this.certRewarded[type] = true
+                rewarded = CERT_REWARD_LIKES
+            }
+            this.persist()
+            return { ok: true, rewarded }
+        },
+
+        // 运营审核驳回：保留原因供展示与申诉
+        rejectCertification(type, reason = '凭证不清晰或信息不一致') {
+            if (type !== 'education' && type !== 'work') return { ok: false }
+            const record = this.verifications[type] || {}
+            this.verifications[type] = {
+                ...record,
+                status: 'failed',
+                handledAt: Date.now(),
+                reason
+            }
+            this.authStatus[type] = false
+            this.persist()
+            return { ok: true }
+        },
+
+        // 人工申诉：回到待审核（MVP 仅做状态流转）
+        appealCertification(type) {
+            const record = this.verifications[type]
+            if (!record || record.status !== 'failed') return { ok: false }
+            this.verifications[type] = { ...record, status: 'pending', reason: '', submittedAt: Date.now() }
+            this.persist()
+            return { ok: true }
+        },
+
+        // 调试：清空学历 / 工作认证
+        resetCertifications() {
+            this.authStatus.education = false
+            this.authStatus.work = false
+            this.verifications.education = null
+            this.verifications.work = null
+            this.certRewarded = { education: false, work: false }
+            this.persist()
+        },
+        // 旧接口：直接设置层级，内部转换为底层状态
+        setUserLevel(level) {
+            this.switchLevel(level)
+        },
+
+        // ===== 调试用：一键切换三级权限 =====
+        switchLevel(level) {
+            if (level === 'guest') {
+                this.logout()
+                return
+            }
+            if (!this.isLogin) this.loginMock('registered')
+            this.authStatus.realName = level === 'certified'
+            this.verifications.realName = level === 'certified'
+                ? { status: 'success', time: '2026-11-11 10:00' }
+                : null
+            this.persist()
+        },
+
+        // ===== 收藏心动 =====
+        addFavorite(user) {
+            if (!user || !user.id) return false
+            if (this.favorites.some(item => item.id === user.id)) return false
+            this.favorites.unshift({
+                id: user.id,
+                name: user.name,
+                age: user.age,
+                avatar: user.avatar,
+                district: user.district,
+                occupation: user.occupation,
+                time: Date.now()
+            })
+            this.persist()
+            return true
+        },
+        removeFavorite(userId) {
+            this.favorites = this.favorites.filter(item => item.id !== Number(userId))
+            this.persist()
+        },
+        isFavorited(userId) {
+            return this.favorites.some(item => item.id === Number(userId))
+        },
+
+        // ===== 登出 =====
+        logout() {
+            this.userInfo = null
+            this.isLogin = false
+            this.authStatus = { realName: false, education: false, work: false }
+            this.verifications = { realName: null, education: null, work: null }
+            this.profile = {
+                gender: '',
+                age: '',
+                city: '',
+                height: '',
+                emotionNeed: '',
+                bio: '',
+                hobbies: [],
+                tags: [],
+                photos: []
+            }
+            this.favorites = []
+            this.certRewarded = { education: false, work: false }
+            this.persist()
+        }
     }
-  }),
-  
-  getters: {
-    // 是否已实名
-    isRealNameAuth: (state) => state.authStatus.realName,
-    // 认证数量
-    authCount: (state) => {
-      let count = 0
-      if (state.authStatus.realName) count++
-      if (state.authStatus.education) count++
-      if (state.authStatus.work) count++
-      return count
-    },
-    // 用户显示名称
-    displayName: (state) => {
-      if (!state.userInfo) return '游客'
-      return state.userInfo.nickname || '用户'
-    }
-  },
-  
-  actions: {
-    // 设置用户信息
-    setUserInfo(info) {
-      this.userInfo = info
-      this.isLogin = true
-    },
-    // 设置用户层级
-    setUserLevel(level) {
-      this.userLevel = level
-    },
-    // 设置认证状态
-    setAuthStatus(type, status) {
-      if (type === 'realName') this.authStatus.realName = status
-      if (type === 'education') this.authStatus.education = status
-      if (type === 'work') this.authStatus.work = status
-    },
-    // 更新资料
-    updateProfile(data) {
-      this.profile = { ...this.profile, ...data }
-    },
-    // 登出
-    logout() {
-      this.userInfo = null
-      this.isLogin = false
-      this.userLevel = 'guest'
-      this.authStatus = {
-        realName: false,
-        education: false,
-        work: false
-      }
-    }
-  }
 })

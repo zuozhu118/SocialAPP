@@ -647,12 +647,13 @@
         uni.navigateBack()
     }
 
-    // ===== 头像 =====
+    // ===== 头像（3.2：上传后进入 AI 人脸审核，网图 / 明星照会被驳回） =====
     const changeAvatar = () => {
         uni.chooseImage({
             count: 1,
             success: (res) => {
                 form.value.avatar = res.tempFilePaths[0]
+                uni.showToast({ title: '头像已提交 AI 人脸检测，审核通过后生效', icon: 'none', duration: 2200 })
             }
         })
     }

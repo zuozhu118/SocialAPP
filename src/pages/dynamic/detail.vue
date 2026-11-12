@@ -3,141 +3,198 @@
         <CustomNavbar title="动态详情" :show-back="true" @back="handleBack" />
 
         <scroll-view class="detail-content" scroll-y>
-            <!-- 用户信息 -->
-            <view class="detail-user">
-                <UserCard :name="detail.userName"
-                          :avatar="detail.userAvatar"
-                          :age="detail.userAge"
-                          :auth="detail.auth"
-                          :avatar-size="44"
-                          :badge-size="18" />
-                <view class="detail-user__right">
-                    <text class="detail-user__time">{{ detail.time }}</text>
-                    <view v-if="detail.isQuality" class="detail-user__quality">优质</view>
-                </view>
+            <view v-if="!detail" class="detail-missing">
+                <text class="detail-missing__icon">🌿</text>
+                <text class="detail-missing__text">这条动态已被删除</text>
             </view>
 
-            <!-- 动态图片 -->
-            <view class="detail-images" :class="{ 'detail-images--single': detail.images.length === 1 }">
-                <image v-for="(img, index) in detail.images"
-                       :key="index"
-                       class="detail-images__item"
-                       :src="img"
-                       mode="aspectFill"
-                       @click="previewImage(index)" />
-            </view>
-
-            <!-- 动态文字 -->
-            <view class="detail-text">
-                <text class="detail-text__content">{{ detail.content }}</text>
-                <text v-if="detail.location" class="detail-text__location">
-                    <text class="icon icon-location" /> {{ detail.location }}
-                </text>
-            </view>
-
-            <!-- 互动栏 -->
-            <view class="detail-actions">
-                <view class="detail-actions__item" @click="handleLike">
-                    <text class="detail-actions__icon"
-                          :class="[detail.liked ? 'icon-heart-filled' : 'icon-heart']"
-                          :style="{ color: detail.liked ? '#E06060' : '' }" />
-                    <text class="detail-actions__count">{{ detail.likes }}</text>
-                </view>
-                <view class="detail-actions__item" @click="focusComment">
-                    <text class="detail-actions__icon icon icon-comment" />
-                    <text class="detail-actions__count">{{ detail.comments }}</text>
-                </view>
-                <view class="detail-actions__item" @click="handleShare">
-                    <text class="detail-actions__icon icon icon-share" />
-                </view>
-                <view class="detail-actions__item" @click="handleReport">
-                    <text class="detail-actions__icon icon icon-flag" />
-                </view>
-            </view>
-
-            <!-- 评论列表 -->
-            <view class="detail-comments">
-                <view class="detail-comments__title">
-                    全部评论 ({{ detail.comments }})
-                </view>
-                <view v-for="(comment, index) in comments"
-                      :key="index"
-                      class="detail-comments__item">
-                    <UserCard :name="comment.name"
-                              :avatar="comment.avatar"
-                              :avatar-size="32"
-                              :badge-size="14" />
-                    <view class="detail-comments__body">
-                        <text class="detail-comments__text">{{ comment.text }}</text>
-                        <text class="detail-comments__time">{{ comment.time }}</text>
+            <template v-else>
+                <!-- 用户信息 -->
+                <view class="detail-user">
+                    <UserCard :name="detail.userName"
+                              :avatar="detail.userAvatar"
+                              :age="detail.userAge"
+                              :auth="detail.auth"
+                              :avatar-size="44"
+                              :badge-size="18" />
+                    <view class="detail-user__right">
+                        <text class="detail-user__time">{{ detail.timeLabel }}</text>
+                        <view class="detail-user__badges">
+                            <view v-if="detail.crossCity" class="detail-user__badge detail-user__badge--cross">跨城</view>
+                            <view v-if="detail.isQuality" class="detail-user__badge detail-user__badge--quality">精选</view>
+                        </view>
                     </view>
                 </view>
-            </view>
+
+                <!-- 动态图片 -->
+                <view class="detail-images" :class="{ 'detail-images--single': detail.images.length === 1 }">
+                    <image v-for="(img, index) in detail.images"
+                           :key="index"
+                           class="detail-images__item"
+                           :src="img"
+                           mode="aspectFill"
+                           @click="previewImage(index)" />
+                </view>
+
+                <!-- 动态文字 -->
+                <view class="detail-text">
+                    <text class="detail-text__content">{{ detail.content }}</text>
+                    <text v-if="detail.location" class="detail-text__location">
+                        <text class="icon icon-location" /> {{ detail.location }}
+                    </text>
+                </view>
+
+                <!-- 互动栏 -->
+                <view class="detail-actions">
+                    <view class="detail-actions__item" @click="handleLike">
+                        <text class="detail-actions__icon"
+                              :class="[detail.liked ? 'icon-heart-filled' : 'icon-heart']"
+                              :style="{ color: detail.liked ? '#E06060' : '' }" />
+                        <text class="detail-actions__count">{{ detail.likes }}</text>
+                    </view>
+                    <view class="detail-actions__item" @click="focusComment">
+                        <text class="detail-actions__icon icon icon-comment" />
+                        <text class="detail-actions__count">{{ detail.commentCount }}</text>
+                    </view>
+                    <view class="detail-actions__item" @click="handleShare">
+                        <text class="detail-actions__icon icon icon-share" />
+                    </view>
+                    <view class="detail-actions__item" @click="handleReport">
+                        <text class="detail-actions__icon icon icon-flag" />
+                    </view>
+                </view>
+
+                <!-- 评论列表 -->
+                <view class="detail-comments">
+                    <view class="detail-comments__title">
+                        全部评论 ({{ comments.length }})
+                    </view>
+
+                    <view v-if="!comments.length" class="detail-comments__empty">
+                        <text>{{ commentsEmptyText }}</text>
+                    </view>
+
+                    <view v-for="comment in comments"
+                          :key="comment.id"
+                          class="detail-comments__item">
+                        <UserCard :name="comment.name"
+                                  :avatar="comment.avatar"
+                                  :avatar-size="32"
+                                  :badge-size="14" />
+                        <view class="detail-comments__body">
+                            <view class="detail-comments__meta" @click="openCommentActions(comment)">
+                                <text class="detail-comments__name">{{ comment.name }}</text>
+                                <text v-if="comment.userId === myId" class="detail-comments__mine">我</text>
+                                <text class="detail-comments__more icon icon-more"></text>
+                            </view>
+                            <text class="detail-comments__text">{{ comment.text }}</text>
+                            <text class="detail-comments__time">{{ comment.timeLabel }}</text>
+                        </view>
+                    </view>
+                </view>
+            </template>
         </scroll-view>
 
-        <!-- 评论输入 -->
+        <!-- 评论输入（三级权限分层） -->
         <view class="detail-input" :style="{ bottom: keyboardHeight + 'px' }">
-            <input class="detail-input__field"
-                   type="text"
-                   placeholder="说点什么..."
-                   v-model="commentText"
-                   @confirm="submitComment"
-                   @focus="onFocus"
-                   @blur="onBlur" />
-            <button class="detail-input__btn"
-                    @click="submitComment"
-                    :disabled="!commentText.trim()">
-                发送
-            </button>
+            <view v-if="!canComment" class="detail-input__locked" @click="handleLockedInput">
+                <text class="detail-input__locked-text">{{ lockedInputText }}</text>
+            </view>
+            <template v-else>
+                <textarea class="detail-input__field"
+                          placeholder="说点什么..."
+                          maxlength="60"
+                          :show-confirm-bar="false"
+                          v-model="commentText"
+                          @focus="onFocus"
+                          @blur="onBlur" />
+                <button class="detail-input__btn"
+                        @click="submitComment"
+                        :disabled="!commentText.trim()">
+                    发送
+                </button>
+            </template>
         </view>
+
+        <!-- 权限引导弹窗 -->
+        <PermissionModal :visible="showPermission"
+                         :mode="permissionPayload.mode"
+                         :title="permissionPayload.title"
+                         :content="permissionPayload.content"
+                         :confirm-text="permissionPayload.confirmText"
+                         @confirm="handlePermissionConfirm"
+                         @close="showPermission = false" />
     </view>
 </template>
 
 <script setup>
-    import { ref} from 'vue'
+    import { ref, computed } from 'vue'
     import { onLoad } from '@dcloudio/uni-app'
     import CustomNavbar from '@/components/common/CustomNavbar.vue'
     import UserCard from '@/components/common/UserCard.vue'
+    import PermissionModal from '@/components/common/PermissionModal.vue'
+    import { usePermission } from '@/composables/usePermission'
+    import { useSquareStore } from '@/store/index'
+    import { detectContact } from '@/store/match'
+    import { currentUserProfile } from '@/mock/users'
+    import { businessCopy } from '@/mock/copy'
 
+    const square = useSquareStore()
+    const { guard, isGuest, isCertified } = usePermission()
+
+    const myId = currentUserProfile.id
+
+    const dynamicId = ref(null)
     const commentText = ref('')
     const keyboardHeight = ref(0)
+    const focusAfterLoad = ref(false)
 
-    const detail = ref({
-        id: 1,
-        userName: '林小鹿',
-        userAge: 24,
-        userAvatar: 'https://picsum.photos/100/100?random=10',
-        auth: { realName: true, education: true, work: false },
-        time: '2小时前',
-        content: '今天的阳光真好，在咖啡馆看了一下午的书📖 有小伙伴推荐好看的书吗？',
-        images: ['https://picsum.photos/600/400?random=20', 'https://picsum.photos/600/400?random=21'],
-        location: '北京·三里屯',
-        likes: 23,
-        liked: false,
-        comments: 8,
-        isQuality: true
-    })
+    // 权限引导弹窗
+    const showPermission = ref(false)
+    const permissionPayload = ref({ mode: 'register', title: '', content: '', confirmText: '' })
 
-    const comments = ref([
-        {
-            name: '陈橘子',
-            avatar: 'https://picsum.photos/100/100?random=11',
-            text: '好美呀！这是哪家咖啡馆？',
-            time: '1小时前'
-        },
-        {
-            name: '周小白',
-            avatar: 'https://picsum.photos/100/100?random=12',
-            text: '推荐《百年孤独》！',
-            time: '30分钟前'
+    const openPermission = (payload) => {
+        permissionPayload.value = { ...payload }
+        showPermission.value = true
+    }
+
+    const handlePermissionConfirm = () => {
+        const mode = permissionPayload.value.mode
+        showPermission.value = false
+        uni.navigateTo({ url: mode === 'register' ? '/pages/auth/login' : '/pages/auth/realname' })
+    }
+
+    // ===== 数据 =====
+    const detail = computed(() => dynamicId.value ? square.detailOf(dynamicId.value) : null)
+
+    // 评论：被拉黑用户的评论在前端过滤
+    const comments = computed(() => dynamicId.value ? square.commentsOf(dynamicId.value) : [])
+
+    const commentsEmptyText = computed(() => '还没有人评论，来说点什么吧')
+
+    // 评论分层：游客 → 注册；注册未实名 → 实名；已实名 → 放行
+    const canComment = computed(() => isCertified.value)
+
+    const lockedInputText = computed(() =>
+        isGuest.value ? '注册后可评论' : '完成实名认证后可评论'
+    )
+
+    // ===== 生命周期 =====
+    onLoad((options) => {
+        square.restore()
+        if (options?.id) {
+            dynamicId.value = Number.isFinite(Number(options.id)) ? Number(options.id) : options.id
         }
-    ])
+        if (options?.focus === 'comment') focusAfterLoad.value = true
+    })
 
     const handleBack = () => {
         uni.navigateBack()
     }
 
+    // ===== 交互 =====
     const previewImage = (index) => {
+        if (!detail.value) return
         uni.previewImage({
             current: index,
             urls: detail.value.images
@@ -145,18 +202,29 @@
     }
 
     const handleLike = () => {
-        if (detail.value.liked) {
-            detail.value.likes--
-            detail.value.liked = false
-        } else {
-            detail.value.likes++
-            detail.value.liked = true
+        const { allowed, modal } = guard('likeDynamic')
+        if (!allowed) {
+            openPermission(modal)
+            return
+        }
+        const res = square.toggleLike(dynamicId.value)
+        if (res.ok && res.liked) {
             uni.showToast({ title: '已点赞 ❤️', icon: 'success' })
         }
     }
 
+    const handleLockedInput = () => {
+        const { modal } = guard('commentDynamic')
+        if (modal) openPermission(modal)
+    }
+
     const focusComment = () => {
-        // 聚焦到输入框
+        if (!canComment.value) {
+            handleLockedInput()
+            return
+        }
+        focusAfterLoad.value = true
+        uni.showToast({ title: '在下方输入框评论', icon: 'none' })
     }
 
     const handleShare = () => {
@@ -164,11 +232,48 @@
     }
 
     const handleReport = () => {
-        uni.navigateTo({ url: '/pages/common/report' })
+        if (isGuest.value) {
+            const { modal } = guard('viewProfile')
+            if (modal) openPermission(modal)
+            return
+        }
+        uni.navigateTo({ url: `/pages/common/report?id=${dynamicId.value}` })
+    }
+
+    // 点评论作者 → 屏蔽 / 举报（拉黑完整能力在 M8，这里先打通过滤链路）
+    const openCommentActions = (comment) => {
+        if (isGuest.value) return
+        if (comment.userId === myId) {
+            uni.showActionSheet({
+                itemList: ['删除我的评论'],
+                success: (res) => {
+                    if (res.tapIndex === 0) {
+                        square.removeComment(dynamicId.value, comment.id)
+                        uni.showToast({ title: '已删除', icon: 'none' })
+                    }
+                }
+            })
+            return
+        }
+        const blocked = square.isBlocked(comment.userId)
+        uni.showActionSheet({
+            itemList: [blocked ? '取消屏蔽此人' : '屏蔽此人的评论', '举报此评论'],
+            success: (res) => {
+                if (res.tapIndex === 0) {
+                    const r = square.toggleBlockUser(comment.userId)
+                    uni.showToast({
+                        title: r.blocked ? `已屏蔽 ${comment.name} 的评论` : '已取消屏蔽',
+                        icon: 'none'
+                    })
+                } else if (res.tapIndex === 1) {
+                    uni.navigateTo({ url: `/pages/common/report?id=${dynamicId.value}` })
+                }
+            }
+        })
     }
 
     const onFocus = (e) => {
-        keyboardHeight.value = e.detail.height || 260
+        keyboardHeight.value = e.detail?.height || 0
     }
 
     const onBlur = () => {
@@ -176,21 +281,26 @@
     }
 
     const submitComment = () => {
-        if (!commentText.value.trim()) return
-        comments.value.unshift({
-            name: '我',
-            avatar: 'https://picsum.photos/100/100?random=30',
-            text: commentText.value,
-            time: '刚刚'
-        })
-        detail.value.comments++
-        commentText.value = ''
-        uni.showToast({ title: '评论成功', icon: 'success' })
+        const { allowed, modal } = guard('commentDynamic')
+        if (!allowed) {
+            openPermission(modal)
+            return
+        }
+        const text = commentText.value.trim()
+        if (!text) return
+        // 评论区同样拦截联系方式
+        if (detectContact(text)) {
+            uni.showToast({ title: businessCopy.contactInGreeting, icon: 'none' })
+            return
+        }
+        const res = square.addComment(dynamicId.value, text)
+        if (res.ok) {
+            commentText.value = ''
+            uni.showToast({ title: '评论成功', icon: 'success' })
+        } else {
+            uni.showToast({ title: '这条动态已被删除', icon: 'none' })
+        }
     }
-
-    onLoad((options) => {
-        console.log('动态ID:', options.id)
-    })
 </script>
 
 <style lang="scss" scoped>
@@ -206,6 +316,23 @@
         padding: 0 $page-padding-x;
     }
 
+    .detail-missing {
+        padding: 120px 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+
+        &__icon {
+            font-size: 32px;
+        }
+
+        &__text {
+            font-size: $font-size-sm;
+            color: $text-helper;
+        }
+    }
+
     .detail-user {
         display: flex;
         align-items: center;
@@ -215,8 +342,9 @@
 
     .detail-user__right {
         display: flex;
-        align-items: center;
-        gap: $spacing-sm;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
         flex-shrink: 0;
     }
 
@@ -225,13 +353,26 @@
         color: $text-helper;
     }
 
-    .detail-user__quality {
-        padding: 2px 12px;
-        font-size: $font-size-xs;
-        font-weight: $font-weight-medium;
-        color: #FFFFFF;
-        background-color: $primary-color;
-        border-radius: 12px;
+    .detail-user__badges {
+        display: flex;
+        gap: 4px;
+    }
+
+    .detail-user__badge {
+        padding: 1px 8px;
+        font-size: 10px;
+        border-radius: 8px;
+        line-height: 1.5;
+
+        &--cross {
+            color: $text-secondary;
+            background-color: $bg-card;
+        }
+
+        &--quality {
+            color: #C8A252;
+            background: linear-gradient(135deg, rgba(255, 239, 186, 0.4), rgba(255, 215, 100, 0.2));
+        }
     }
 
     .detail-images {
@@ -313,7 +454,7 @@
     }
 
     .detail-comments {
-        padding: $spacing-md 0;
+        padding: $spacing-md 0 40px;
     }
 
     .detail-comments__title {
@@ -321,6 +462,13 @@
         font-weight: $font-weight-medium;
         color: $text-primary;
         margin-bottom: $spacing-md;
+    }
+
+    .detail-comments__empty {
+        padding: 24px 0 32px;
+        text-align: center;
+        font-size: $font-size-xs;
+        color: $text-helper;
     }
 
     .detail-comments__item {
@@ -337,16 +485,45 @@
 
     .detail-comments__body {
         flex: 1;
+        min-width: 0;
+    }
+
+    .detail-comments__meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 2px;
+    }
+
+    .detail-comments__name {
+        font-size: $font-size-xs;
+        color: $text-secondary;
+        font-weight: $font-weight-medium;
+    }
+
+    .detail-comments__mine {
+        padding: 0 5px;
+        font-size: 9px;
+        color: $primary-dark;
+        background-color: $primary-light-bg;
+        border-radius: 6px;
+    }
+
+    .detail-comments__more {
+        font-size: 12px;
+        color: $text-helper;
+        padding: 0 2px;
     }
 
     .detail-comments__text {
         display: block;
         font-size: $font-size-sm;
-        color: $text-secondary;
+        color: $text-primary;
+        line-height: 1.6;
     }
 
     .detail-comments__time {
-        font-size: $font-size-xs;
+        font-size: 10px;
         color: $text-helper;
     }
 
@@ -367,10 +544,27 @@
     .detail-input__field {
         flex: 1;
         height: 36px;
-        padding: 0 $spacing-md;
+        padding: 9px $spacing-md;
         background-color: $bg-page;
         border-radius: 18px;
         font-size: $font-size-sm;
+        line-height: 1.4;
+        box-sizing: border-box;
+    }
+
+    .detail-input__locked {
+        flex: 1;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        padding: 0 $spacing-md;
+        background-color: $bg-page;
+        border-radius: 18px;
+    }
+
+    .detail-input__locked-text {
+        font-size: $font-size-sm;
+        color: $text-helper;
     }
 
     .detail-input__btn {

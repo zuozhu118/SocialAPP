@@ -11,14 +11,13 @@
 
         <!-- 登录核心区 -->
         <view class="login-card">
-            <!-- 场景 A：未勾选协议 -> 普通按钮拦截点击 -->
+            <!-- 微信小程序：走原生手机号授权 -->
+            <!-- #ifdef MP-WEIXIN -->
             <button v-if="!agreed"
                     class="login-card__wechat-btn"
                     @click="handleDisabledBtnClick">
                 <text class="login-card__wechat-text">手机号快捷登录</text>
             </button>
-
-            <!-- 场景 B：已勾选协议 -> 触发微信原生手机号授权 -->
             <button v-else
                     class="login-card__wechat-btn"
                     open-type="getPhoneNumber"
@@ -27,6 +26,17 @@
                     :disabled="wechatLoading">
                 <text class="login-card__wechat-text">手机号快捷登录</text>
             </button>
+            <!-- #endif -->
+
+            <!-- H5 / 其他平台：mock 一键登录 -->
+            <!-- #ifndef MP-WEIXIN -->
+            <button class="login-card__wechat-btn"
+                    @click="handleMockLogin"
+                    :loading="wechatLoading"
+                    :disabled="wechatLoading">
+                <text class="login-card__wechat-text">手机号快捷登录</text>
+            </button>
+            <!-- #endif -->
 
             <!-- 底部协议区 -->
             <view class="login-card__agreement" :class="{ 'is-shake': isAgreementShaking }">
@@ -55,12 +65,11 @@
 
 <script setup>
     import { ref } from 'vue'
-    import { useUserStore, useAppStore } from '@/store/index'
-    import { wechatLogin } from '@/api/auth'
+    import { useUserStore, useEquityStore } from '@/store/index'
 
     // ===== Store =====
     const userStore = useUserStore()
-    const appStore = useAppStore()
+    const equityStore = useEquityStore()
 
     // ===== 状态 =====
     const agreed = ref(false)  // 默认未选中
@@ -81,79 +90,51 @@
         triggerAgreementShake()
     }
 
-    // ===== 微信手机号一键登录 =====
-    const handleGetPhoneNumber = async (e) => {
-        console.log('[Login Debug] getPhoneNumber 回调触发:', e.detail)
-        const { errMsg, encryptedData, iv } = e.detail
+    /**
+     * 统一登录（MVP 阶段纯前端 mock）
+     * 注册完成后自动划入「注册未实名」层级，不强制跳转实名
+     */
+    const doLogin = () => {
+        wechatLoading.value = true
+        setTimeout(() => {
+            userStore.loginMock('registered')
+            equityStore.init(userStore.gender)
+            wechatLoading.value = false
+            uni.showToast({ title: '注册成功', icon: 'success' })
 
-        if (errMsg === 'getPhoneNumber:ok') {
-            wechatLoading.value = true
-
-            try {
-                // 1. 调用 wx.login 获取 code
-                console.log('[Login Debug] 开始调用 wx.login 获取 code...')
-                const loginRes = await new Promise((resolve, reject) => {
-                    wx.login({
-                        success: resolve,
-                        fail: reject
-                    })
-                })
-
-                const wxCode = loginRes.code
-                console.log('[Login Debug] wx.login 成功，code:', wxCode)
-
-                if (!wxCode) {
-                    uni.showToast({ title: '获取登录凭证失败', icon: 'none' })
-                    wechatLoading.value = false
-                    return
-                }
-
-                // 2. 调用后端登录接口
-                console.log('[Login Debug] 开始请求后端 wechatLogin 接口...')
-                const result = await wechatLogin({
-                    code: wxCode,
-                    encryptedData: encryptedData,
-                    iv: iv
-                })
-                console.log('[Login Debug] 后端登录返回结果:', result)
-
-                // 3. 保存登录信息
-                uni.setStorageSync('token', result.token)
-                uni.setStorageSync('userInfo', result.user)
-
-                userStore.setUserInfo(result.user)
-                userStore.setAuthStatus('realName', result.authStatus?.realName || false)
-                userStore.setAuthStatus('education', result.authStatus?.education || false)
-                userStore.setAuthStatus('work', result.authStatus?.work || false)
-
-                if (result.equity) {
-                    appStore.updateEquity(result.equity)
-                }
-
-                uni.showToast({ title: '登录成功', icon: 'success' })
-
-                // 4. 界面跳转
+            setTimeout(() => {
+                uni.switchTab({ url: '/pages/match/index' })
+                // 实名引导仅做顶部弱提示，不弹强制弹窗
                 setTimeout(() => {
-                    if (!result.authStatus?.realName) {
-                        uni.navigateTo({ url: '/pages/auth/realname' })
-                    } else {
-                        uni.switchTab({ url: '/pages/match/index' })
-                    }
-                }, 500)
+                    uni.showToast({ title: '完成实名认证即可开启异性匹配', icon: 'none' })
+                }, 900)
+            }, 500)
+        }, 600)
+    }
 
-            } catch (error) {
-                console.error('[Login Debug] 微信登录过程异常:', error)
-                uni.showToast({ title: error.msg || '登录失败，请重试', icon: 'none' })
-            } finally {
-                wechatLoading.value = false
-            }
-        } else if (errMsg === 'getPhoneNumber:fail user deny') {
-            console.warn('[Login Debug] 用户拒绝手机号授权')
-            uni.showToast({ title: '已取消微信授权', icon: 'none' })
-        } else {
-            console.error('[Login Debug] 手机号授权未知失败:', errMsg)
-            uni.showToast({ title: '授权失败，请重试', icon: 'none' })
+    // H5 / 其他平台：按钮直接 mock 登录
+    const handleMockLogin = () => {
+        if (!agreed.value) {
+            triggerAgreementShake()
+            return
         }
+        doLogin()
+    }
+
+    // 微信小程序：原生手机号授权回调
+    const handleGetPhoneNumber = (e) => {
+        const errMsg = e?.detail?.errMsg || ''
+        if (errMsg === 'getPhoneNumber:ok') {
+            doLogin()
+            return
+        }
+        if (errMsg.includes('deny')) {
+            uni.showToast({ title: '已取消微信授权', icon: 'none' })
+            return
+        }
+        // 开发者工具或未配置手机号能力时，走 mock 登录兜底，保证流程可演示
+        console.warn('[Login] 手机号授权不可用，使用 mock 登录：', errMsg)
+        doLogin()
     }
 
     // 查看协议

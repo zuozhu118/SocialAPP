@@ -34,18 +34,30 @@
 
         <!-- ===== 认证部分（轻量标签，仅展示） ===== -->
         <view class="auth-section">
-            <view class="auth-item" :class="userInfo.auth.realName ? 'is-active' : 'is-inactive'">
+            <view class="auth-item" :class="userInfo.auth.realName ? 'is-active is-lit' : 'is-inactive'">
                 <text class="auth-item__icon">{{ userInfo.auth.realName ? '✓' : '○' }}</text>
                 <text class="auth-item__label">身份认证</text>
             </view>
-            <view class="auth-item" :class="userInfo.auth.education ? 'is-active' : 'is-inactive'">
+            <view class="auth-item" :class="userInfo.auth.education ? 'is-active is-lit' : 'is-inactive'">
                 <text class="auth-item__icon">{{ userInfo.auth.education ? '✓' : '○' }}</text>
                 <text class="auth-item__label">学历认证</text>
             </view>
-            <view class="auth-item" :class="userInfo.auth.work ? 'is-active' : 'is-inactive'">
+            <view class="auth-item" :class="userInfo.auth.work ? 'is-active is-lit' : 'is-inactive'">
                 <text class="auth-item__icon">{{ userInfo.auth.work ? '✓' : '○' }}</text>
                 <text class="auth-item__label">单位认证</text>
             </view>
+        </view>
+
+        <!-- ===== 资料完成度（点亮动效） ===== -->
+        <view class="completeness-section">
+            <view class="completeness__head">
+                <text class="completeness__label">资料完成度</text>
+                <text class="completeness__percent">{{ completeness }}%</text>
+            </view>
+            <view class="completeness__bar">
+                <view class="completeness__fill" :style="{ width: completeness + '%' }"></view>
+            </view>
+            <text class="completeness__tip">{{ completenessTip }}</text>
         </view>
 
         <!-- ===== 个人简介 ===== -->
@@ -209,12 +221,14 @@
 </template>
 
 <script setup>
-    import { ref } from 'vue'
+    import { ref, computed } from 'vue'
+    import { useUserStore } from '@/store/index'
+    import { COMPLETENESS_THRESHOLD, COMPLETENESS_BONUS } from '@/store/equity'
 
-    const userId = ref('10086520')
+    const userStore = useUserStore()
 
-    // 用户信息
-    const userInfo = ref({
+    // 展示层兜底数据（接入后端前，未填写的字段回落到本地默认）
+    const localInfo = ref({
         avatar: 'https://picsum.photos/200/200?random=30',
         nickname: '小鹿同学',
         gender: 'female',
@@ -267,6 +281,38 @@
             'https://picsum.photos/400/400?random=37',
             'https://picsum.photos/400/400?random=38'
         ]
+    })
+
+    // 身份 / 认证 / 资料关键信息全部来自 userStore（3.2 主页分层标识）
+    const userInfo = computed(() => {
+        const u = userStore.userInfo || {}
+        const p = userStore.profile
+        const auth = userStore.authStatus
+        return {
+            ...localInfo.value,
+            avatar: u.avatar || localInfo.value.avatar,
+            nickname: u.nickname || u.name || localInfo.value.nickname,
+            gender: p.gender || localInfo.value.gender,
+            age: p.age || localInfo.value.age,
+            city: p.city || localInfo.value.city,
+            bio: p.bio || localInfo.value.bio,
+            height: p.height || localInfo.value.height,
+            auth: {
+                realName: !!auth.realName,
+                education: !!auth.education,
+                work: !!auth.work
+            }
+        }
+    })
+
+    // 资料完成度（与个人中心同口径）
+    const completeness = computed(() => userStore.profileCompleteness)
+    const completenessTip = computed(() => {
+        if (completeness.value >= 100) return '资料已完善，曝光与匹配权重已达最高'
+        if (completeness.value >= COMPLETENESS_THRESHOLD) {
+            return `已达标，可在权益中心领取次日 +${COMPLETENESS_BONUS} 次浏览额度`
+        }
+        return `完善资料至 ${COMPLETENESS_THRESHOLD}% 可获得额外浏览额度`
     })
 
     // 动态列表
@@ -485,6 +531,10 @@
                 color: #6B8A5E;
             }
         }
+        // 点亮动效：认证通过后呼吸微光一次
+        &.is-lit {
+            animation: authLit 1.4s ease 1;
+        }
         // 未认证 - 浅灰标签
         &.is-inactive {
             background: #F0F1F3;
@@ -494,6 +544,80 @@
                 color: #C8C8D0;
             }
         }
+    }
+
+    @keyframes authLit {
+        0% {
+            box-shadow: 0 0 0 0 rgba(168, 184, 154, 0);
+            transform: scale(0.96);
+        }
+
+        45% {
+            box-shadow: 0 0 10px 2px rgba(168, 184, 154, 0.55);
+            transform: scale(1.04);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(168, 184, 154, 0);
+            transform: scale(1);
+        }
+    }
+
+    // ===== 资料完成度 =====
+    .completeness-section {
+        margin: 0 12px;
+        padding: 12px 16px 14px;
+        background: $bg-card;
+        border-radius: 0 0 $radius-card $radius-card;
+        box-shadow: $shadow-card;
+        border-top: 1px solid $border-light;
+    }
+
+    .completeness__head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+    }
+
+    .completeness__label {
+        font-size: 12px;
+        color: $text-secondary;
+    }
+
+    .completeness__percent {
+        font-size: 14px;
+        font-weight: 600;
+        color: $primary-dark;
+    }
+
+    .completeness__bar {
+        height: 7px;
+        border-radius: 4px;
+        background: #F0F1F3;
+        overflow: hidden;
+        margin-top: 8px;
+    }
+
+    .completeness__fill {
+        height: 100%;
+        border-radius: 4px;
+        background: linear-gradient(90deg, #C6D5B8, $primary-dark);
+        // 点亮动效：从 0 生长到目标宽度
+        animation: barGrow 0.9s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    @keyframes barGrow {
+        from {
+            width: 0%;
+        }
+    }
+
+    .completeness__tip {
+        display: block;
+        margin-top: 6px;
+        font-size: 10px;
+        color: $text-helper;
+        line-height: 1.5;
     }
 
     // ===== 个人简介 =====

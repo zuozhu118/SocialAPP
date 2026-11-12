@@ -4,13 +4,24 @@
         <view class="match-navbar">
             <view class="match-navbar__title">匹配</view>
             <view class="match-navbar__right">
-                <view class="match-navbar__quota">
-                    <text class="match-navbar__quota-text">今日剩余</text>
-                    <text class="match-navbar__quota-num">{{ remainQuota }}</text>
-                    <text class="match-navbar__quota-text">次</text>
-                </view>
                 <text class="match-navbar__icon icon icon-filter" @click="showFilterPanel = true"></text>
             </view>
+        </view>
+
+        <!-- 顶部双额度进度条（浏览 / 心动） -->
+        <view class="match-quota-wrap">
+            <QuotaBar />
+        </view>
+
+        <!-- 已匹配状态条：常驻，关闭匹配成功动效后可随时回顾 -->
+        <view v-if="matchedBarUser && !matchedBarHidden" class="match-matched-bar" @click="openMatchedEntry">
+            <text class="match-matched-bar__icon">💗</text>
+            <view class="match-matched-bar__body">
+                <text class="match-matched-bar__title">已和 {{ matchedBarUser.name }} 匹配</text>
+                <text class="match-matched-bar__desc">{{ matchedBarDesc }}</text>
+            </view>
+            <text class="match-matched-bar__close icon icon-close" @click.stop="matchedBarHidden = true"></text>
+            <text class="match-matched-bar__arrow icon icon-arrow-right"></text>
         </view>
 
         <!-- 快速筛选栏：固定不滚动 -->
@@ -29,14 +40,23 @@
         </view>
 
         <!-- 匹配主内容区：仅此处可滚动 -->
-        <view class="match-main" v-if="currentMatchUser">
+        <view class="match-main" v-if="currentMatchUser && !quotaExhausted" :key="cardKey">
+            <!-- 优质推荐：金色粒子 -->
+            <view v-if="isQualityCard" class="quality-particles">
+                <view v-for="(particle, index) in particles" :key="index" class="quality-particle" :style="particle" />
+            </view>
             <!-- 可滚动内容区 -->
             <scroll-view scroll-y class="match-scroll" show-scrollbar="false">
                 <!-- 纯净头图 -->
-                <view class="match-hero" @click="openAlbumDrawer">
+                <view class="match-hero" :class="{ 'match-hero--quality': isQualityCard }" @click="openAlbumDrawer">
                     <image class="match-hero__image"
                            :src="currentMatchUser.avatar"
                            mode="aspectFill" />
+                    <!-- 优质推荐勋章 -->
+                    <view v-if="isQualityCard" class="quality-badge">
+                        <text class="quality-badge__icon icon icon-medal-gold"></text>
+                        <text class="quality-badge__text">优质推荐</text>
+                    </view>
                     <view class="match-hero__tip">
                         <text class="icon icon-image"></text>
                         点击查看完整相册
@@ -63,6 +83,11 @@
                                     <text class="icon icon-check"></text>工作
                                 </view>
                             </view>
+                        </view>
+
+                        <!-- 优质推荐气泡文案 -->
+                        <view v-if="isQualityCard" class="quality-bubble">
+                            精选的同城双认证优质用户，匹配度 {{ qualityScore }}%
                         </view>
 
                         <view class="match-base__meta">
@@ -222,34 +247,52 @@
                     <text class="icon icon-close"></text>
                 </button>
                 <button class="match-actions__btn match-actions__btn--main"
-                        @click="handleContact"
-                        :disabled="!isAuthenticated">
+                        @click="handleContact">
                     <text class="icon icon-wechat"></text>
                     交换联系方式
                 </button>
                 <button class="match-actions__btn match-actions__btn--like"
-                        @click="handleLike"
-                        :disabled="!isAuthenticated">
+                        @click="handleLike">
                     <text class="icon icon-heart"></text>
                 </button>
             </view>
 
-            <!-- 未实名蒙版 -->
-            <view v-if="!isAuthenticated" class="match-mask" @click="showAuthModal = true">
+            <!-- 未实名蒙版：游客引导注册，注册未实名引导实名 -->
+            <view v-if="!isAuthenticated" class="match-mask" @click="promptAuth">
                 <view class="match-mask__content">
-                    <text class="match-mask__title">完成实名认证</text>
-                    <text class="match-mask__desc">开启异性精准匹配</text>
-                    <button class="match-mask__btn">立即认证</button>
+                    <text class="match-mask__title">{{ isGuest ? '注册后查看完整资料' : '完成实名认证' }}</text>
+                    <text class="match-mask__desc">{{ isGuest ? '已有大量同城用户完成实名' : '开启异性精准匹配' }}</text>
+                    <button class="match-mask__btn">{{ isGuest ? '一键授权手机号注册' : '立即认证' }}</button>
                 </view>
             </view>
         </view>
 
-        <!-- 空状态 -->
-        <view v-if="!currentMatchUser" class="match-empty">
+        <!-- 今日推荐看完 / 浏览额度耗尽 -->
+        <view v-if="quotaExhausted || (isPoolEmpty && filteredPool.length > 0)" class="match-empty">
+            <text class="match-empty__emoji">🌙</text>
+            <text class="match-empty__title">今日缘分已尽</text>
+            <text class="match-empty__desc">明天将为你刷新全新的同城异性</text>
+            <view class="match-empty__hint">
+                <text class="match-empty__hint-label">资料完整度</text>
+                <text class="match-empty__hint-value">{{ userStore.profileCompleteness }}%</text>
+                <text class="match-empty__hint-desc">完善至 80%，次日额外 +3 次浏览</text>
+            </view>
+            <button v-if="equity.canClaimCompletenessBonus(userStore.profileCompleteness)"
+                    class="match-empty__btn"
+                    @click="claimBonus">
+                领取明日 +3 次浏览
+            </button>
+            <button v-else class="match-empty__btn" @click="goToProfileEdit">完善资料</button>
+            <button class="match-empty__btn match-empty__btn--ghost" @click="goToSquare">去广场逛逛</button>
+        </view>
+
+        <!-- 筛选后无匹配 -->
+        <view v-else-if="isPoolEmpty" class="match-empty">
             <image class="match-empty__image" src="/static/images/empty-match.png" mode="aspectFit" />
-            <text class="match-empty__title">今日推荐已看完</text>
-            <text class="match-empty__desc">去广场逛逛，发现更多有趣的人</text>
-            <button class="match-empty__btn" @click="goToSquare">去广场逛逛</button>
+            <text class="match-empty__title">你的缘分还在路上</text>
+            <text class="match-empty__desc">放宽筛选条件，或完善资料让 TA 更快找到你</text>
+            <button class="match-empty__btn" @click="showFilterPanel = true">调整筛选条件</button>
+            <button class="match-empty__btn match-empty__btn--ghost" @click="goToProfileEdit">完善资料</button>
         </view>
 
         <!-- 相册抽屉 -->
@@ -273,164 +316,244 @@
         </view>
 
         <!-- 筛选面板 -->
-        <FilterPanel v-model:visible="showFilterPanel" @apply="applyFilter" />
+        <FilterPanel v-model:visible="showFilterPanel" :model-value="panelFilters" @apply="applyFilter" />
 
-        <!-- 认证引导弹窗 -->
-        <CustomModal v-model:visible="showAuthModal"
-                     title="实名认证"
-                     content="完成实名认证后，才能进行匹配和互动，享受更安全的交友体验"
-                     confirm-text="去认证"
-                     cancel-text="稍后"
-                     @confirm="goToRealName" />
-
-        <!-- 匹配成功弹窗 -->
-        <CustomModal v-model:visible="showMatchSuccess"
-                     title="匹配成功"
-                     confirm-text="发个招呼"
-                     cancel-text="稍后再说"
-                     @confirm="goToChat">
-            <view class="match-success-content">
-                <view class="match-success__avatars">
-                    <image class="match-success__avatar" :src="selfAvatar" mode="aspectFill" />
-                    <view class="match-success__divider"></view>
-                    <image class="match-success__avatar" :src="currentMatchUser?.avatar" mode="aspectFill" />
+        <!-- 心动二次确认 -->
+        <CustomModal :visible="showLikeConfirm"
+                     title="确认发送心动"
+                     confirm-text="发送心动"
+                     cancel-text="再想想"
+                     size="small"
+                     @confirm="confirmLike"
+                     @cancel="showLikeConfirm = false"
+                     @close="showLikeConfirm = false">
+            <view class="like-confirm">
+                <text class="like-confirm__target">向 {{ currentMatchUser?.name }} 发送心动</text>
+                <view class="like-confirm__quota">
+                    <view class="like-confirm__quota-item">
+                        <text class="like-confirm__quota-num">{{ equity.remainLike }}</text>
+                        <text class="like-confirm__quota-label">今日剩余</text>
+                    </view>
+                    <view class="like-confirm__quota-divider" />
+                    <view class="like-confirm__quota-item">
+                        <text class="like-confirm__quota-num">{{ equity.permanentLikes }}</text>
+                        <text class="like-confirm__quota-label">永久次数</text>
+                    </view>
                 </view>
-                <text class="match-success__names">我 和 {{ currentMatchUser?.name }} 配对成功</text>
-                <text class="match-success__hint">{{ currentMatchUser?.matchSlogan }}</text>
+                <text class="like-confirm__tip">双方互相心动后即可申请交换微信</text>
             </view>
         </CustomModal>
+
+        <!-- 心动额度耗尽 -->
+        <CustomModal :visible="showLikeExhausted"
+                     title="今日心动已用完"
+                     :content="likeExhaustedCopy"
+                     :show-cancel="false"
+                     confirm-text="知道了"
+                     size="small"
+                     @confirm="showLikeExhausted = false"
+                     @close="showLikeExhausted = false" />
+
+        <!-- 权限引导弹窗（注册 / 实名 / 收藏心动） -->
+        <PermissionModal :visible="showPermission"
+                         :mode="permissionPayload.mode"
+                         :title="permissionPayload.title"
+                         :content="permissionPayload.content"
+                         :confirm-text="permissionPayload.confirmText"
+                         @confirm="handlePermissionConfirm"
+                         @favorite="handlePermissionFavorite"
+                         @close="showPermission = false" />
+
+        <!-- 匹配成功全屏动效（暖粉渐变 + 头像碰撞 + 粒子，1.5s 可跳过） -->
+        <MatchSuccessOverlay :visible="showMatchSuccess"
+                             :me-avatar="selfAvatar"
+                             :target-avatar="successTarget?.avatar || ''"
+                             :target-name="successTarget?.name || ''"
+                             :tags="successTags"
+                             @apply="goToApply"
+                             @close="closeMatchSuccess" />
     </view>
 </template>
 
 <script setup>
-    import { ref, computed, onMounted } from 'vue'
+    import { ref, computed, onMounted, watch } from 'vue'
     import CustomModal from '@/components/common/CustomModal.vue'
+    import PermissionModal from '@/components/common/PermissionModal.vue'
     import FilterPanel from './components/FilterPanel.vue'
+    import QuotaBar from '@/components/common/QuotaBar.vue'
+    import { useUserStore, useEquityStore, useMatchStore } from '@/store/index'
+    import { usePermission } from '@/composables/usePermission'
+    import MatchSuccessOverlay from '@/components/match/MatchSuccessOverlay.vue'
+    import { users, findUserById, currentUserProfile } from '@/mock/users'
+    import { quickFilters, defaultFilters, matchUserByFilters } from '@/mock/filters'
+    import { matchSuccessTags } from '@/mock/matches'
+    import { businessCopy } from '@/mock/copy'
+
+    // ===== Store / 权限 =====
+    const userStore = useUserStore()
+    const equity = useEquityStore()
+    const matchStore = useMatchStore()
+    const { guard, isGuest, isCertified } = usePermission()
 
     // ===== 状态 =====
-    const isAuthenticated = ref(true)
-    const remainQuota = ref(10)
+    // 是否已实名（未实名时展示引导蒙版）
+    const isAuthenticated = computed(() => isCertified.value)
     const selfHasTest = ref(true)
     const showFilterPanel = ref(false)
-    const showAuthModal = ref(false)
     const showMatchSuccess = ref(false)
+    const successTarget = ref(null)
     const showAlbum = ref(false)
-    const selfAvatar = ref('https://picsum.photos/200/200?random=30')
+    const selfAvatar = ref(userStore.userInfo?.avatar || 'https://picsum.photos/200/200?random=30')
 
-    const filterOptions = ref([
-        { label: '全部', active: true, value: 'all' },
-        { label: '同城', active: false, value: 'city' },
-        { label: '本科+', active: false, value: 'education' },
-        { label: '认证用户', active: false, value: 'auth' },
-        { label: '近期活跃', active: false, value: 'active' }
-    ])
+    // 权限弹窗
+    const showPermission = ref(false)
+    const permissionPayload = ref({ mode: 'register', title: '', content: '', confirmText: '' })
+    let pendingFavorite = null
 
-    // 匹配用户池
-    const matchUsers = ref([
-        {
-            id: 1,
-            name: '林小鹿',
-            gender: 'female',
-            age: 24,
-            birthYear: '00',
-            height: 165,
-            weight: 48,
-            constellation: '巨蟹座',
-            education: '本科',
-            career: '互联网产品经理',
-            avatar: 'https://picsum.photos/800/1000?random=101',
-            occupation: '教师',
-            district: '朝阳区',
-            hometown: '天津',
-            maritalStatus: '未婚',
-            income: '15-20W',
-            ipLocation: '北京市',
-            hasCompletedTest: true,
-            bio: '慢热型，希望遇到能一起吃很多饭、聊很多天的人',
-            matchSlogan: '都爱周末探店的你们，大概率能吃到一起、聊到一块',
-            weekendTags: ['探店觅食', '逛展看剧', '居家观影'],
-            hobbyTags: ['摄影', '旅行', '咖啡', '阅读'],
-            personalityTags: ['慢热', '温柔', '细节控', '共情力强'],
-            lifeTags: ['无车', '一房', '不吸烟', '不喝酒'],
-            expectTags: ['22-30岁', '未婚', '175cm+', '本科及以上', '情绪稳定', '三观正', '同城'],
-            showMedals: [
-                { name: '双一流守护者', icon: 'icon-medal-gold', type: 'gold' },
-                { name: '大厂搬砖人', icon: 'icon-briefcase', type: 'blue' }
-            ],
-            lifeScript: {
-                name: '烟火安居型',
-                desc: '追求稳定的生活节奏，看重家庭与日常的幸福感，倾向于在熟悉的城市定居发展，一步步经营自己的小日子。',
-                tags: ['定居发展', '安稳踏实', '家庭优先', '细水长流']
-            },
-            values: {
-                love: '认真奔结婚，不接受快餐式恋爱，希望感情是双向奔赴慢慢升温',
-                consume: '适度消费，注重性价比，不盲目攀比，愿意为爱好和体验买单',
-                life: '追求安稳的小幸福，工作之余享受生活，不卷也不躺平'
-            },
-            auth: { realName: true, education: true, work: false },
-            album: [
-                'https://picsum.photos/400/400?random=11',
-                'https://picsum.photos/400/400?random=12',
-                'https://picsum.photos/400/400?random=13',
-                'https://picsum.photos/400/400?random=14',
-                'https://picsum.photos/400/400?random=15',
-                'https://picsum.photos/400/400?random=16'
-            ]
-        },
-        {
-            id: 2,
-            name: '陈橘子',
-            gender: 'female',
-            age: 26,
-            birthYear: '98',
-            height: 168,
-            weight: 50,
-            constellation: '双子座',
-            education: '研究生',
-            career: '金融分析师',
-            avatar: 'https://picsum.photos/800/1000?random=102',
-            occupation: '财务',
-            district: '浦东新区',
-            hometown: '杭州',
-            maritalStatus: '未婚',
-            income: '20-30W',
-            ipLocation: '上海市',
-            hasCompletedTest: true,
-            bio: '理性与浪漫各一半，喜欢有质感的生活',
-            matchSlogan: '一个规划行程一个负责惊喜，你们的相处节奏会很合拍',
-            weekendTags: ['健身运动', '咖啡探店', '城市漫步'],
-            hobbyTags: ['瑜伽', '阅读', '音乐', '理财'],
-            personalityTags: ['独立', '理性', '自律', '目标感强'],
-            lifeTags: ['无车', '无房', '不吸烟', '偶尔喝酒'],
-            expectTags: ['24-32岁', '未婚', '175cm+', '本科及以上', '上进自律', '情绪稳定'],
-            showMedals: [
-                { name: '学术钻研人', icon: 'icon-graduation', type: 'purple' },
-                { name: '职场精英', icon: 'icon-briefcase', type: 'blue' }
-            ],
-            lifeScript: {
-                name: '事业进阶型',
-                desc: '处于事业上升期，看重个人成长与职业发展，希望另一半能并肩同行，彼此支持共同变好。',
-                tags: ['事业上升', '共同成长', '独立自律', '眼界开阔']
-            },
-            values: {
-                love: '势均力敌的爱情，彼此欣赏互相扶持，不依附不将就',
-                consume: '看重品质不看数量，愿意为体验和自我提升投资',
-                life: '工作时全力以赴，生活时尽情享受，保持成长节奏'
-            },
-            auth: { realName: true, education: true, work: true },
-            album: [
-                'https://picsum.photos/400/400?random=21',
-                'https://picsum.photos/400/400?random=22',
-                'https://picsum.photos/400/400?random=23',
-                'https://picsum.photos/400/400?random=24',
-                'https://picsum.photos/400/400?random=25',
-                'https://picsum.photos/400/400?random=26'
-            ]
-        }
-    ])
+    // 额度与弹窗状态
+    const quotaExhausted = ref(false)
+    const showLikeConfirm = ref(false)
+    const showLikeExhausted = ref(false)
+    const likeExhaustedCopy = ref(businessCopy.likeQuotaExhausted)
+
+    // 顶部快捷筛选
+    const filterOptions = ref(quickFilters.map((item, index) => ({ ...item, active: index === 0 })))
+
+    // 面板筛选条件（8 组免费标签）
+    const panelFilters = ref({ ...defaultFilters })
+
+    // 匹配用户池（统一 mock 数据）
+    const allUsers = users.map(item => ({ ...item }))
+
+    // 筛选后的用户池：仅异性 + 快捷标签 + 面板条件
+    const filteredPool = computed(() => {
+        const selfGender = userStore.profile.gender || 'male'
+        const quick = filterOptions.value.find(item => item.active)?.value || 'all'
+
+        return allUsers.filter(user => {
+            // 全平台仅展示异性
+            if (user.gender === selfGender) return false
+
+            if (quick === 'city') {
+                const city = (user.ipLocation || '').replace('市', '')
+                const selfCity = (userStore.profile.city || '').replace('市', '')
+                if (selfCity && !city.includes(selfCity) && !user.district.includes(selfCity)) return false
+            }
+            if (quick === 'education' && !['本科', '硕士', '研究生'].some(level => (user.education || '').includes(level))) {
+                return false
+            }
+            if (quick === 'auth' && !(user.auth.education || user.auth.work)) return false
+
+            return matchUserByFilters(user, panelFilters.value)
+        })
+    })
 
     const currentIndex = ref(0)
-    const currentMatchUser = computed(() => matchUsers.value[currentIndex.value] || null)
+    const currentMatchUser = computed(() => filteredPool.value[currentIndex.value] || null)
+    // 当前无卡片可展示（额度耗尽 / 今日推荐看完 / 筛选无匹配）
+    const isPoolEmpty = computed(() => !currentMatchUser.value)
+    // 每张卡片独立渲染，用于重新触发入场动效
+    const cardKey = computed(() => currentMatchUser.value ? `card-${currentMatchUser.value.id}-${currentIndex.value}` : 'empty')
+
+    // ===== 双向匹配关系（文档 3.4）=====
+    // 最近一次双向匹配：顶部状态条常驻展示，可随时点开回顾
+    const matchedBarHidden = ref(false)
+    const latestMatch = computed(() => {
+        const list = matchStore.matches || []
+        if (!list.length) return null
+        return [...list].sort((a, b) => b.matchedAt - a.matchedAt)[0]
+    })
+
+    const matchedBarUser = computed(() => {
+        if (!latestMatch.value) return null
+        return findUserById(latestMatch.value.userId)
+    })
+
+    // 当前卡片对应的匹配记录
+    const matchedRelation = computed(() => {
+        const target = currentMatchUser.value
+        if (!target) return null
+        return matchStore.getMatch(target.id)
+    })
+
+    // 已匹配状态条副标题：按微信交换进度区分
+    const matchedBarDesc = computed(() => {
+        const relation = latestMatch.value
+        if (!relation) return ''
+        if (relation.wechatStatus === 'agreed') return '微信号已互换，点击回顾'
+        if (relation.wechatStatus === 'pending') return '微信申请已发出，等待对方确认'
+        return '你们互相心动了，点击申请交换微信'
+    })
+
+    // 匹配成功动效页展示的共同标签
+    const successTags = computed(() => {
+        const target = successTarget.value
+        return target ? matchSuccessTags(target, currentUserProfile) : []
+    })
+
+    // ===== 优质惊喜推荐 =====
+    // 触发门槛：双方双认证 + 标签交集 ≥3（后端判断，这里用 mock 模拟）
+    const qualityId = ref(null)
+    const selfTags = computed(() => {
+        const profile = userStore.profile
+        return new Set([
+            ...(profile.hobbies || []),
+            ...(profile.tags || []),
+            ...(currentUserProfile.weekendTags || []),
+            ...(currentUserProfile.lifeTags || [])
+        ])
+    })
+
+    const tagOverlapCount = computed(() => {
+        const target = currentMatchUser.value
+        if (!target) return 0
+        const targetTags = [
+            ...(target.hobbyTags || []),
+            ...(target.personalityTags || []),
+            ...(target.weekendTags || []),
+            ...(target.lifeTags || [])
+        ]
+        return [...new Set(targetTags)].filter(tag => selfTags.value.has(tag)).length
+    })
+
+    const isQualityEligible = computed(() => {
+        const target = currentMatchUser.value
+        if (!target) return false
+        return target.auth?.education && target.auth?.work && tagOverlapCount.value >= 3
+    })
+
+    const isQualityCard = computed(() => {
+        return !!currentMatchUser.value && qualityId.value === currentMatchUser.value.id
+    })
+
+    // 匹配度（后端计算的模拟值，随交集标签数量浮动）
+    const qualityScore = computed(() => Math.min(96, 86 + tagOverlapCount.value * 2))
+
+    // 金色星星粒子
+    const particles = computed(() => Array.from({ length: 14 }, (_, index) => {
+        const left = 8 + ((index * 37) % 84)
+        const delay = (index % 7) * 0.08
+        const size = 3 + (index % 3)
+        return `left:${left}%; bottom:${10 + (index % 5) * 8}%; width:${size}px; height:${size}px; animation-delay:${delay}s;`
+    }))
+
+    // 卡片切换后判断是否触发优质推荐
+    watch(currentMatchUser, (target) => {
+        qualityId.value = null
+        if (!target) return
+        if (!isQualityEligible.value) return
+        if (equity.qualityRemaining <= 0) return
+        if (!equity.canTriggerQuality()) return
+
+        equity.markQualityUsed()
+        qualityId.value = target.id
+        // 轻微短震（同微信点赞），无震动权限设备自动忽略
+        try {
+            uni.vibrateShort({ type: 'light' })
+        } catch (e) {
+            console.warn('[match] 设备不支持短震', e)
+        }
+    }, { immediate: true })
 
     // 匹配推荐语显示条件
     const canShowMatchSlogan = computed(() => {
@@ -452,48 +575,159 @@
     })
 
     // ===== 操作方法 =====
-    const handleLike = () => {
-        if (!isAuthenticated.value) {
-            showAuthModal.value = true
+    // ===== 权限弹窗控制 =====
+    const openPermission = (payload, onFavorite = null) => {
+        permissionPayload.value = { ...payload }
+        pendingFavorite = onFavorite
+        showPermission.value = true
+    }
+
+    const handlePermissionConfirm = () => {
+        const mode = permissionPayload.value.mode
+        showPermission.value = false
+        if (mode === 'register') {
+            uni.navigateTo({ url: '/pages/auth/login' })
             return
         }
+        uni.navigateTo({ url: '/pages/auth/realname' })
+    }
+
+    const handlePermissionFavorite = () => {
+        showPermission.value = false
+        if (pendingFavorite) pendingFavorite()
+    }
+
+    // 收藏心动（未实名用户的沉没成本机制）
+    const favoriteTarget = () => {
+        const target = currentMatchUser.value
+        if (!target) return
+        const added = userStore.addFavorite(target)
+        uni.showToast({ title: added ? '已收藏心动' : 'TA 已在收藏中', icon: 'none' })
+        advance()
+    }
+
+    // ===== 心动：权限校验 -> 二次确认 -> 扣额度 =====
+    const handleLike = () => {
+        const target = currentMatchUser.value
+        if (!target) return
+
+        const { allowed, modal } = guard('likeUser')
+        if (!allowed) {
+            // 未实名：双选项弹窗【收藏心动】/【先去实名认证】
+            if (modal.mode === 'realname') {
+                openPermission({ ...modal, mode: 'favorite', content: '完成实名认证即可发送心动，也可以先收藏，等认证后再来' }, favoriteTarget)
+            } else {
+                openPermission(modal)
+            }
+            return
+        }
+
+        // 心动额度耗尽（当日 + 永久都无）
+        if (equity.totalLikeAvailable <= 0) {
+            likeExhaustedCopy.value = businessCopy.likeQuotaExhausted
+            showLikeExhausted.value = true
+            return
+        }
+
+        // 二次确认，展示剩余心动次数，防误触
+        showLikeConfirm.value = true
+    }
+
+    // 二次确认后真正发送心动
+    const confirmLike = () => {
+        showLikeConfirm.value = false
+        const target = currentMatchUser.value
+        if (!target) return
+
+        const result = equity.consumeLike()
+        if (!result.ok) {
+            likeExhaustedCopy.value = businessCopy.likeQuotaExhausted
+            showLikeExhausted.value = true
+            return
+        }
+
+        // 扣完当日额度时提示正在使用永久次数
+        if (result.source === 'permanent') {
+            uni.showToast({ title: `已使用永久心动，剩 ${result.remain} 次`, icon: 'none' })
+        }
+
+        // 对方也心动 → 建立双向匹配并拉起全屏动效（文档 3.4.1）
         if (Math.random() < 0.3) {
+            matchStore.createMatch(target.id)
+            matchStore.markSuccessShown(target.id)
+            successTarget.value = target
             showMatchSuccess.value = true
         } else {
-            uni.showToast({ title: '已喜欢', icon: 'success' })
+            uni.showToast({ title: '已发送心动', icon: 'success' })
         }
-        nextUser()
+        advance()
     }
 
     const handleSkip = () => {
-        nextUser()
+        advance()
     }
 
-    const handleContact = () => {
-        if (!isAuthenticated.value) {
-            showAuthModal.value = true
-            return
+    // 切换到下一张卡片：普通卡片消耗 1 次浏览额度，优质推荐不占用额度
+    const advance = () => {
+        if (!isQualityCard.value) {
+            const result = equity.consumeBrowse()
+            if (!result.ok) {
+                quotaExhausted.value = true
+                return
+            }
         }
-        uni.showToast({ title: '需双向喜欢后解锁联系方式', icon: 'none' })
-    }
-
-    const nextUser = () => {
-        if (currentIndex.value < matchUsers.value.length - 1) {
+        if (currentIndex.value < filteredPool.value.length - 1) {
             currentIndex.value++
         } else {
             currentIndex.value = -1
         }
     }
 
+    // 额度耗尽后：资料完整度达标可领取次日 +3 浏览额度
+    const claimBonus = () => {
+        const ok = equity.claimCompletenessBonus(userStore.profileCompleteness)
+        if (ok) {
+            uni.showToast({ title: '已获得明日 +3 次浏览额度', icon: 'none' })
+            quotaExhausted.value = true
+            return
+        }
+        uni.showToast({ title: '资料完整度达 80% 才可领取', icon: 'none' })
+    }
+
+    const goToProfileEdit = () => {
+        uni.navigateTo({ url: '/pages/profile/edit' })
+    }
+
+    const goToRealName = () => {
+        uni.navigateTo({ url: '/pages/auth/realname' })
+    }
+
+    const handleContact = () => {
+        const { allowed, modal } = guard('applyWechat')
+        if (!allowed) {
+            openPermission(modal)
+            return
+        }
+        const target = currentMatchUser.value
+        if (!target) return
+        uni.navigateTo({ url: `/pages/match/apply?userId=${target.id}&type=apply` })
+    }
+
     const toggleFilter = (index) => {
         filterOptions.value.forEach((item, i) => {
             item.active = i === index
         })
-        applyFilter()
+        currentIndex.value = 0
+        quotaExhausted.value = false
     }
 
-    const applyFilter = () => {
+    // 筛选面板确认
+    const applyFilter = (filters) => {
+        if (filters) panelFilters.value = filters
         currentIndex.value = 0
+        quotaExhausted.value = false
+        const count = filteredPool.value.length
+        uni.showToast({ title: count ? `为你找到 ${count} 位匹配` : '暂无符合条件的用户', icon: 'none' })
     }
 
     // ===== 举报与拉黑 =====
@@ -514,7 +748,7 @@
             success: (res) => {
                 if (res.confirm) {
                     uni.showToast({ title: '已拉黑', icon: 'success' })
-                    nextUser()
+                    advance()
                 }
             }
         })
@@ -562,16 +796,35 @@
         uni.switchTab({ url: '/pages/square/index' })
     }
 
-    const goToRealName = () => {
-        uni.navigateTo({ url: '/pages/auth/realname' })
+    // 蒙版点击：按当前层级给出对应引导
+    const promptAuth = () => {
+        const { modal } = guard('likeUser')
+        openPermission(modal)
     }
 
-    const goToChat = () => {
-        uni.showToast({ title: '招呼功能开发中', icon: 'none' })
+    // ===== 匹配成功后的去向（文档 3.4.1 底部双按钮）=====
+    const goToApply = () => {
+        const target = successTarget.value
+        showMatchSuccess.value = false
+        if (!target) return
+        uni.navigateTo({ url: `/pages/match/apply?userId=${target.id}` })
+    }
+
+    const closeMatchSuccess = () => {
+        showMatchSuccess.value = false
+        matchedBarHidden.value = false
+    }
+
+    // 顶部「已匹配」状态条：直达微信交换页（不提供站内聊天）
+    const openMatchedEntry = () => {
+        const relation = latestMatch.value
+        if (!relation) return
+        uni.navigateTo({ url: `/pages/match/apply?userId=${relation.userId}` })
     }
 
     onMounted(() => {
-        console.log('匹配页加载完成')
+        // 恢复匹配关系（3 天申请过期在这里校验）
+        matchStore.restore()
     })
 </script>
 
@@ -1429,4 +1682,282 @@
             border: none;
         }
     }
+
+    // ===== M2：双额度条 =====
+    .match-quota-wrap {
+        flex-shrink: 0;
+        padding: 0 $page-padding-x 8px;
+        background-color: $bg-page;
+        z-index: $z-index-sticky - 1;
+    }
+
+    // ===== M3：已匹配状态条（常驻，可回顾）=====
+    .match-matched-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+        margin: 0 $page-padding-x 8px;
+        padding: 9px 12px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(255, 154, 178, 0.18), rgba(255, 196, 160, 0.12));
+        border: 1px solid rgba(255, 107, 129, 0.22);
+
+        &__icon {
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        &__body {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        &__title {
+            font-size: 12px;
+            font-weight: $font-weight-medium;
+            color: #E8446C;
+        }
+
+        &__desc {
+            font-size: 10px;
+            color: $text-helper;
+        }
+
+        &__close {
+            font-size: 13px;
+            color: $text-helper;
+            padding: 2px;
+            flex-shrink: 0;
+        }
+
+        &__arrow {
+            font-size: 13px;
+            color: rgba(232, 68, 108, 0.6);
+            flex-shrink: 0;
+        }
+    }
+
+    // ===== M2：卡片入场动效 =====
+    .match-main {
+        animation: cardSlideIn 0.42s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+
+    @keyframes cardSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(18px) scale(0.985);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    // ===== M2：优质惊喜推荐 =====
+    .match-hero {
+        position: relative;
+
+        // 淡金色边框渐亮 + 呼吸微光
+        &--quality {
+            border: 2px solid rgba(226, 186, 105, 0.85);
+            box-shadow: 0 0 0 1px rgba(226, 186, 105, 0.25),
+                        0 6px 24px rgba(214, 168, 74, 0.28);
+            animation: goldGlow 2.4s ease-in-out infinite;
+        }
+    }
+
+    @keyframes goldGlow {
+        0%, 100% {
+            box-shadow: 0 0 0 1px rgba(226, 186, 105, 0.22),
+                        0 6px 18px rgba(214, 168, 74, 0.2);
+        }
+        50% {
+            box-shadow: 0 0 0 2px rgba(226, 186, 105, 0.45),
+                        0 8px 28px rgba(214, 168, 74, 0.36);
+        }
+    }
+
+    .quality-badge {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 12px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(255, 245, 214, 0.96), rgba(246, 219, 150, 0.96));
+        border: 1px solid rgba(200, 162, 82, 0.5);
+        box-shadow: 0 2px 8px rgba(200, 162, 82, 0.3);
+        z-index: 3;
+
+        &__icon {
+            font-size: 12px;
+            color: #B8860B;
+        }
+
+        &__text {
+            font-size: 11px;
+            font-weight: $font-weight-medium;
+            color: #8A6A24;
+        }
+    }
+
+    .quality-bubble {
+        margin-top: 8px;
+        padding: 6px 12px;
+        font-size: 11px;
+        line-height: 1.5;
+        color: #8A6A24;
+        background: rgba(255, 246, 220, 0.9);
+        border: 1px solid rgba(226, 186, 105, 0.5);
+        border-radius: 12px;
+        animation: bubbleIn 0.5s ease 0.15s both;
+    }
+
+    @keyframes bubbleIn {
+        from {
+            opacity: 0;
+            transform: translateY(-6px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .quality-particles {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        pointer-events: none;
+        z-index: 4;
+        overflow: hidden;
+    }
+
+    .quality-particle {
+        position: absolute;
+        border-radius: 50%;
+        background: radial-gradient(circle, #FFE9A8 0%, #E2BA69 60%, rgba(226, 186, 105, 0) 100%);
+        animation: particleFloat 0.8s ease-out forwards;
+        opacity: 0;
+    }
+
+    @keyframes particleFloat {
+        0% {
+            opacity: 0;
+            transform: translateY(0) scale(0.4);
+        }
+        30% {
+            opacity: 0.95;
+        }
+        100% {
+            opacity: 0;
+            transform: translateY(-70px) scale(1.1);
+        }
+    }
+
+    // ===== M2：心动二次确认 =====
+    .like-confirm {
+        text-align: center;
+
+        &__target {
+            display: block;
+            font-size: $font-size-sm;
+            color: $text-primary;
+            margin-bottom: $spacing-md;
+        }
+
+        &__quota {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: $spacing-md;
+            padding: 12px 0;
+            background-color: $bg-page;
+            border-radius: $radius-sm;
+        }
+
+        &__quota-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            min-width: 64px;
+        }
+
+        &__quota-num {
+            font-size: 22px;
+            font-weight: $font-weight-bold;
+            color: #E06060;
+        }
+
+        &__quota-label {
+            font-size: 10px;
+            color: $text-helper;
+        }
+
+        &__quota-divider {
+            width: 1px;
+            height: 26px;
+            background-color: $border-light;
+        }
+
+        &__tip {
+            display: block;
+            margin-top: $spacing-sm;
+            font-size: 11px;
+            color: $text-helper;
+        }
+    }
+
+    // ===== M2：额度耗尽面板 =====
+    .match-empty {
+        gap: 10px;
+
+        &__emoji {
+            font-size: 40px;
+            margin-bottom: $spacing-sm;
+        }
+
+        &__hint {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            margin-bottom: $spacing-lg;
+            padding: 10px 20px;
+            background-color: $primary-light-bg;
+            border-radius: $radius-sm;
+        }
+
+        &__hint-label {
+            font-size: 10px;
+            color: $text-helper;
+        }
+
+        &__hint-value {
+            font-size: $font-size-lg;
+            font-weight: $font-weight-bold;
+            color: $primary-dark;
+        }
+
+        &__hint-desc {
+            font-size: 10px;
+            color: $text-secondary;
+        }
+
+        &__btn--ghost {
+            background-color: transparent;
+            color: $text-secondary;
+            border: 1px solid $border-light;
+        }
+    }
+
 </style>

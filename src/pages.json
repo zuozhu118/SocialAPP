@@ -170,6 +170,13 @@
       }
     },
     {
+      "path": "pages/user/favoriteList",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的收藏"
+      }
+    },
+    {
       "path": "pages/match/apply",
       "style": {
         "navigationStyle": "custom",
@@ -187,6 +194,13 @@
       "path": "pages/profile/myProfile",
       "style": {
         "navigationBarTitleText": "个人主页",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/test/debug",
+      "style": {
+        "navigationBarTitleText": "开发者调试",
         "navigationStyle": "custom"
       }
     }

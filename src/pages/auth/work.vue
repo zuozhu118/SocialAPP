@@ -6,15 +6,15 @@
         <view class="work-header">
             <view class="work-header__icon">💼</view>
             <text class="work-header__title">工作认证</text>
-            <text class="work-header__desc">上传工牌、在职证明或企业邮箱截图，通过审核后获得专属标识</text>
+            <text class="work-header__desc">上传工牌、在职证明或企业邮箱截图，运营人工核对后点亮专属标识</text>
             <view class="work-header__badge">
                 <text class="work-header__badge-icon">🎁</text>
-                认证后 +5次微信申请权益
+                认证后 +5 次永久心动
             </view>
         </view>
 
         <!-- 认证步骤 -->
-        <view class="work-steps">
+        <view class="work-steps" v-if="currentStep <= 3">
             <view v-for="(step, index) in steps"
                   :key="index"
                   class="work-steps__item"
@@ -121,13 +121,13 @@
             </view>
         </view>
 
-        <!-- 步骤3：审核中 -->
+        <!-- 步骤3：审核中（人工核对，状态可跨会话恢复） -->
         <view v-if="currentStep === 3" class="work-content work-content--center">
             <view class="work-status">
                 <text class="work-status__icon">⏳</text>
                 <text class="work-status__title">审核中</text>
-                <text class="work-status__desc">我们会在 1-3 个工作日内完成审核</text>
-                <text class="work-status__desc">审核通过后将获得工作认证标识</text>
+                <text class="work-status__desc">运营正在人工核对，通常 24 小时内完成</text>
+                <text class="work-status__desc">审核通过后将点亮工作标识并发放奖励</text>
             </view>
             <button class="work-content__btn" @click="goToProfile">
                 返回个人主页
@@ -139,21 +139,68 @@
             <view class="work-status work-status--success">
                 <text class="work-status__icon">✅</text>
                 <text class="work-status__title">认证成功！</text>
-                <text class="work-status__desc">您已获得工作认证标识</text>
+                <text class="work-status__desc">您已点亮工作认证标识</text>
                 <view class="work-status__reward">
-                    🎁 获得 5 次微信申请权益
+                    🎁 获得 {{ rewardAmount }} 次永久心动
                 </view>
             </view>
             <button class="work-content__btn" @click="goToProfile">
                 返回个人主页
             </button>
         </view>
+
+        <!-- 步骤5：已认证（再次进入） -->
+        <view v-if="currentStep === 5" class="work-content work-content--center">
+            <view class="work-status work-status--success">
+                <text class="work-status__icon">💼</text>
+                <text class="work-status__title">工作已认证</text>
+                <text class="work-status__desc">认证标识已展示在个人主页，双认证可提升匹配权重</text>
+            </view>
+            <button class="work-content__btn" @click="goToProfile">
+                返回个人主页
+            </button>
+        </view>
+
+        <!-- 步骤6：已驳回（可重新提交 / 申诉） -->
+        <view v-if="currentStep === 6" class="work-content">
+            <view class="work-reject">
+                <text class="work-reject__icon">⚠️</text>
+                <text class="work-reject__title">认证未通过</text>
+                <text class="work-reject__reason">{{ rejectReason }}</text>
+                <text class="work-reject__tip">如有疑问可发起人工申诉，或调整凭证后重新提交</text>
+            </view>
+            <view class="work-content__actions">
+                <button class="work-content__btn work-content__btn--secondary" @click="handleAppeal">
+                    人工申诉
+                </button>
+                <button class="work-content__btn" @click="resubmit">
+                    重新提交
+                </button>
+            </view>
+        </view>
+
+        <!-- 权限拦截弹窗（注册 / 实名） -->
+        <PermissionModal :visible="modal.visible"
+                         :mode="modal.mode"
+                         :title="modal.title"
+                         :content="modal.content"
+                         :confirm-text="modal.confirmText"
+                         @confirm="handleModalConfirm"
+                         @cancel="handleModalCancel"
+                         @close="handleModalCancel" />
     </view>
 </template>
 
 <script setup>
-    import { ref } from 'vue'
+    import { ref, computed } from 'vue'
+    import { onShow } from '@dcloudio/uni-app'
     import CustomNavbar from '@/components/common/CustomNavbar.vue'
+    import PermissionModal from '@/components/common/PermissionModal.vue'
+    import { useUserStore } from '@/store/index'
+    import { CERT_REWARD_LIKES } from '@/store/user'
+    import { businessCopy } from '@/mock/copy'
+
+    const userStore = useUserStore()
 
     const currentStep = ref(1)
     const selectedMethod = ref(null)
@@ -161,6 +208,7 @@
     const companyName = ref('')
     const position = ref('')
     const steps = ['选择方式', '上传凭证', '审核']
+    const rewardAmount = CERT_REWARD_LIKES
 
     const authMethods = [
         { icon: '🪪', title: '工牌/工作证', desc: '上传工牌或工作证照片' },
@@ -168,8 +216,58 @@
         { icon: '✉️', title: '企业邮箱', desc: '上传企业邮箱页面截图' }
     ]
 
+    const rejectReason = computed(() => userStore.verifications.work?.reason || '凭证不清晰或信息不一致')
+
+    // ===== 状态恢复（审核中 / 已认证 / 已驳回跨会话保持） =====
+    const syncStatus = () => {
+        const status = userStore.certificationOf('work')
+        if (status === 'success') currentStep.value = 5
+        else if (status === 'pending') currentStep.value = 3
+        else if (status === 'failed') currentStep.value = 6
+        else if (currentStep.value >= 3) currentStep.value = 1
+    }
+
+    onShow(() => {
+        syncStatus()
+        // 权限门禁：未登录 / 未实名直接弹引导
+        if (!userStore.isLogin) {
+            modal.value = {
+                visible: true,
+                mode: 'register',
+                title: '注册后即可认证',
+                content: businessCopy.registerGuide,
+                confirmText: '一键授权手机号注册'
+            }
+            return
+        }
+        if (!userStore.authStatus.realName) {
+            modal.value = {
+                visible: true,
+                mode: 'realname',
+                title: '完成实名认证后再认证工作',
+                content: businessCopy.realNameGuide,
+                confirmText: '去实名认证'
+            }
+        }
+    })
+
+    // ===== 弹窗 =====
+    const modal = ref({ visible: false, mode: 'register', title: '', content: '', confirmText: '' })
+    const handleModalConfirm = () => {
+        modal.value.visible = false
+        if (!userStore.isLogin) {
+            uni.navigateTo({ url: '/pages/auth/login' })
+            return
+        }
+        uni.navigateTo({ url: '/pages/auth/realname' })
+    }
+    const handleModalCancel = () => {
+        modal.value.visible = false
+        uni.navigateBack()
+    }
+
     const handleBack = () => {
-        if (currentStep.value > 1) {
+        if (currentStep.value === 1 || currentStep.value === 2) {
             uni.showModal({
                 title: '提示',
                 content: '确定要退出吗？认证进度将丢失',
@@ -203,20 +301,60 @@
         currentStep.value = 1
     }
 
+    // 提交认证 → 进入人工审核（mock 审核通过后发放奖励）
     const submitAuth = () => {
         if (!credentialImage.value) {
             uni.showToast({ title: '请上传凭证', icon: 'none' })
+            return
+        }
+        const method = authMethods[selectedMethod.value]?.title || '工牌/工作证'
+        const result = userStore.submitCertification('work', {
+            method,
+            credential: credentialImage.value,
+            company: companyName.value.trim(),
+            position: position.value.trim()
+        })
+        if (!result.ok) {
+            const map = {
+                login: '请先登录',
+                realname: '请先完成实名认证',
+                credential: '请上传凭证'
+            }
+            uni.showToast({ title: map[result.reason] || '提交失败，请稍后再试', icon: 'none' })
             return
         }
         uni.showLoading({ title: '提交中...' })
         setTimeout(() => {
             uni.hideLoading()
             currentStep.value = 3
+            // mock：运营人工核对通过
             setTimeout(() => {
+                const approved = userStore.approveCertification('work')
                 currentStep.value = 4
-                uni.showToast({ title: '认证通过！', icon: 'success' })
+                uni.showToast({
+                    title: approved.rewarded ? `认证通过，+${approved.rewarded} 次永久心动` : '认证通过！',
+                    icon: 'none'
+                })
             }, 2000)
-        }, 1000)
+        }, 800)
+    }
+
+    // 驳回后：申诉回到审核中 / 重新提交
+    const handleAppeal = () => {
+        const result = userStore.appealCertification('work')
+        if (result.ok) {
+            currentStep.value = 3
+            setTimeout(() => {
+                userStore.approveCertification('work')
+                currentStep.value = 4
+            }, 2000)
+        }
+    }
+
+    const resubmit = () => {
+        currentStep.value = 1
+        credentialImage.value = ''
+        selectedMethod.value = null
     }
 
     const goToProfile = () => {
@@ -604,5 +742,45 @@
         50% {
             transform: scale(1.05);
         }
+    }
+
+    // 驳回态
+    .work-reject {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: $spacing-lg;
+        padding: $spacing-lg;
+        background-color: $bg-card;
+        border-radius: $radius-card;
+        box-shadow: $shadow-card;
+        width: 100%;
+    }
+
+    .work-reject__icon {
+        font-size: 40px;
+    }
+
+    .work-reject__title {
+        font-size: $font-size-md;
+        font-weight: $font-weight-medium;
+        color: $text-primary;
+        margin-top: $spacing-sm;
+    }
+
+    .work-reject__reason {
+        margin-top: $spacing-xs;
+        font-size: $font-size-sm;
+        color: $color-danger;
+        line-height: 1.6;
+        text-align: center;
+    }
+
+    .work-reject__tip {
+        margin-top: $spacing-xs;
+        font-size: $font-size-xs;
+        color: $text-helper;
+        line-height: 1.6;
+        text-align: center;
     }
 </style>

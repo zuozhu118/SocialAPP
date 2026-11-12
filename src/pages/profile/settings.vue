@@ -67,6 +67,13 @@
                     <text class="settings-item__desc">v1.0.0</text>
                     <text class="settings-item__arrow">›</text>
                 </view>
+
+                <view class="settings-item" @click="handleDebug">
+                    <text class="settings-item__icon icon icon-settings" />
+                    <text class="settings-item__label">开发者调试</text>
+                    <text class="settings-item__desc">切换身份 / 重置额度</text>
+                    <text class="settings-item__arrow">›</text>
+                </view>
             </view>
 
             <!-- 退出登录 -->
@@ -110,6 +117,10 @@
 
     const handleFeedback = () => {
         uni.navigateTo({ url: '/pages/common/feedback' })
+    }
+
+    const handleDebug = () => {
+        uni.navigateTo({ url: '/pages/test/debug' })
     }
 
     const handleAbout = () => {
