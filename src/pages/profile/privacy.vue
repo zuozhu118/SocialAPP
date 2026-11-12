@@ -2,157 +2,220 @@
     <view class="privacy-page">
         <CustomNavbar title="隐私设置" :show-back="true" @back="handleBack" />
 
-        <view class="privacy-list">
-            <!-- 动态隐私 -->
-            <view class="privacy-group">
-                <text class="privacy-group__title">动态隐私</text>
-
-                <view v-for="(item, index) in dynamicPrivacyOptions"
-                      :key="index"
-                      class="privacy-item"
-                      @click="selectDynamicPrivacy(index)">
-                    <view class="privacy-item__left">
-                        <text class="privacy-item__icon">{{ item.icon }}</text>
-                        <view class="privacy-item__body">
-                            <text class="privacy-item__label">{{ item.label }}</text>
-                            <text class="privacy-item__desc">{{ item.desc }}</text>
+        <scroll-view scroll-y class="privacy-scroll">
+            <view class="privacy-list">
+                <!-- 动态隐私 -->
+                <view class="privacy-group">
+                    <text class="privacy-group__title">动态隐私</text>
+                    <view v-for="item in scopes"
+                          :key="item.value"
+                          class="privacy-item"
+                          @click="selectScope(item.value)">
+                        <view class="privacy-item__left">
+                            <text class="privacy-item__icon">{{ item.icon }}</text>
+                            <view class="privacy-item__body">
+                                <text class="privacy-item__label">{{ item.label }}</text>
+                                <text class="privacy-item__desc">{{ item.desc }}</text>
+                            </view>
+                        </view>
+                        <view class="privacy-check" :class="{ 'privacy-check--on': privacy.dynamicScope === item.value }">
+                            <text v-if="privacy.dynamicScope === item.value" class="privacy-check__mark">✓</text>
                         </view>
                     </view>
-                    <view class="privacy-item__check">
-                        <text v-if="dynamicPrivacy === index">✓</text>
-                    </view>
-                </view>
-            </view>
-
-            <!-- 联系方式 -->
-            <view class="privacy-group">
-                <text class="privacy-group__title">联系方式</text>
-
-                <view class="privacy-switch">
-                    <view class="privacy-switch__left">
-                        <text class="privacy-switch__label">允许他人申请微信</text>
-                        <text class="privacy-switch__desc">关闭后他人无法向你发起微信申请</text>
-                    </view>
-                    <view class="privacy-switch__toggle"
-                          :class="{ 'privacy-switch__toggle--on': allowWechat }"
-                          @click="allowWechat = !allowWechat">
-                        <view class="privacy-switch__thumb"></view>
-                    </view>
                 </view>
 
-                <view class="privacy-item" @click="showWechatCondition">
-                    <view class="privacy-item__left">
-                        <text class="privacy-item__icon">🔑</text>
-                        <view class="privacy-item__body">
-                            <text class="privacy-item__label">申请条件</text>
-                            <text class="privacy-item__desc">{{ wechatConditionText }}</text>
+                <!-- 微信申请 -->
+                <view class="privacy-group">
+                    <text class="privacy-group__title">微信申请</text>
+
+                    <view class="privacy-switch">
+                        <view class="privacy-switch__left">
+                            <text class="privacy-switch__label">允许他人申请微信</text>
+                            <text class="privacy-switch__desc">关闭后他人无法向你发起微信申请</text>
+                        </view>
+                        <view class="privacy-switch__toggle"
+                              :class="{ 'privacy-switch__toggle--on': privacy.allowWechatApply }"
+                              @click="toggle('allowWechatApply')">
+                            <view class="privacy-switch__thumb"></view>
                         </view>
                     </view>
-                    <text class="privacy-item__arrow">›</text>
-                </view>
-            </view>
 
-            <!-- 其他 -->
-            <view class="privacy-group">
-                <text class="privacy-group__title">其他</text>
-
-                <view class="privacy-switch">
-                    <view class="privacy-switch__left">
-                        <text class="privacy-switch__label">同城推荐</text>
-                        <text class="privacy-switch__desc">关闭后不会在同城推荐中显示</text>
-                    </view>
-                    <view class="privacy-switch__toggle"
-                          :class="{ 'privacy-switch__toggle--on': showLocal }"
-                          @click="showLocal = !showLocal">
-                        <view class="privacy-switch__thumb"></view>
-                    </view>
-                </view>
-
-                <view class="privacy-item" @click="handleHideInfo">
-                    <view class="privacy-item__left">
-                        <text class="privacy-item__icon">👁️</text>
-                        <view class="privacy-item__body">
-                            <text class="privacy-item__label">隐藏资料</text>
-                            <text class="privacy-item__desc">选择哪些资料对外隐藏</text>
+                    <view class="privacy-switch">
+                        <view class="privacy-switch__left">
+                            <text class="privacy-switch__label">
+                                24 小时未处理自动拒绝
+                                <text v-if="isFemale" class="privacy-tag">女性默认开启</text>
+                            </text>
+                            <text class="privacy-switch__desc">超时未处理的申请自动关闭，避免持续打扰</text>
+                        </view>
+                        <view class="privacy-switch__toggle"
+                              :class="{ 'privacy-switch__toggle--on': privacy.autoRejectEnabled }"
+                              @click="toggle('autoRejectEnabled')">
+                            <view class="privacy-switch__thumb"></view>
                         </view>
                     </view>
-                    <text class="privacy-item__arrow">›</text>
-                </view>
-            </view>
 
-            <!-- 注销账号 -->
-            <view class="privacy-group">
-                <button class="privacy-delete" @click="handleDeleteAccount">注销账号</button>
+                    <view class="privacy-switch">
+                        <view class="privacy-switch__left">
+                            <text class="privacy-switch__label">仅双认证用户可申请</text>
+                            <text class="privacy-switch__desc">需同时完成学历与工作认证</text>
+                        </view>
+                        <view class="privacy-switch__toggle"
+                              :class="{ 'privacy-switch__toggle--on': privacy.onlyDoubleVerified }"
+                              @click="toggle('onlyDoubleVerified')">
+                            <view class="privacy-switch__thumb"></view>
+                        </view>
+                    </view>
+
+                    <view class="privacy-item" @click="chooseAgeGap">
+                        <view class="privacy-item__left">
+                            <text class="privacy-item__icon">📏</text>
+                            <view class="privacy-item__body">
+                                <text class="privacy-item__label">年龄差拦截</text>
+                                <text class="privacy-item__desc">超出范围的申请自动拦截</text>
+                            </view>
+                        </view>
+                        <view class="privacy-item__value">
+                            <text class="privacy-item__value-text">{{ privacy.ageGapLabel }}</text>
+                            <text class="privacy-item__arrow">›</text>
+                        </view>
+                    </view>
+                </view>
+
+                <!-- 其它隐私 -->
+                <view class="privacy-group">
+                    <text class="privacy-group__title">其它隐私</text>
+
+                    <view class="privacy-switch">
+                        <view class="privacy-switch__left">
+                            <text class="privacy-switch__label">同城推荐</text>
+                            <text class="privacy-switch__desc">关闭后不会出现在同城推荐中</text>
+                        </view>
+                        <view class="privacy-switch__toggle"
+                              :class="{ 'privacy-switch__toggle--on': privacy.showInRecommend }"
+                              @click="toggle('showInRecommend')">
+                            <view class="privacy-switch__thumb"></view>
+                        </view>
+                    </view>
+
+                    <view class="privacy-hide">
+                        <view class="privacy-hide__head">
+                            <text class="privacy-hide__label">隐藏资料</text>
+                            <text class="privacy-hide__value">{{ privacy.hiddenFieldText }}</text>
+                        </view>
+                        <view class="privacy-hide__chips">
+                            <view v-for="field in hideFields"
+                                  :key="field.value"
+                                  class="privacy-chip"
+                                  :class="{ 'privacy-chip--on': privacy.hideFields.includes(field.value) }"
+                                  @click="toggleHideField(field.value)">
+                                <text class="privacy-chip__text">{{ field.label }}</text>
+                            </view>
+                        </view>
+                    </view>
+                </view>
+
+                <!-- 安全与合规（3.6 / 3.7） -->
+                <view class="privacy-group">
+                    <text class="privacy-group__title">安全与合规</text>
+
+                    <view class="privacy-item" @click="goBlacklist">
+                        <view class="privacy-item__left">
+                            <text class="privacy-item__icon">🚫</text>
+                            <view class="privacy-item__body">
+                                <text class="privacy-item__label">黑名单管理</text>
+                                <text class="privacy-item__desc">双向屏蔽，对方不会收到任何通知</text>
+                            </view>
+                        </view>
+                        <view class="privacy-item__value">
+                            <text class="privacy-item__value-text">{{ privacy.blacklistCount }} 人</text>
+                            <text class="privacy-item__arrow">›</text>
+                        </view>
+                    </view>
+
+                    <view class="privacy-item" @click="goReports">
+                        <view class="privacy-item__left">
+                            <text class="privacy-item__icon">🛡️</text>
+                            <view class="privacy-item__body">
+                                <text class="privacy-item__label">我的举报</text>
+                                <text class="privacy-item__desc">举报进度、审核时效与处理结果</text>
+                            </view>
+                        </view>
+                        <view class="privacy-item__value">
+                            <text v-if="risk.pendingReports" class="privacy-item__badge">{{ risk.pendingReports }}</text>
+                            <text class="privacy-item__arrow">›</text>
+                        </view>
+                    </view>
+
+                    <view class="privacy-item" @click="goAccount">
+                        <view class="privacy-item__left">
+                            <text class="privacy-item__icon">⚙️</text>
+                            <view class="privacy-item__body">
+                                <text class="privacy-item__label">账号与安全</text>
+                                <text class="privacy-item__desc">注销账号、实名信息留存规则</text>
+                            </view>
+                        </view>
+                        <text class="privacy-item__arrow">›</text>
+                    </view>
+                </view>
+
+                <text class="privacy-footer">隐私设置即刻生效，我们会用最少的必要信息为你匹配缘分</text>
             </view>
-        </view>
+        </scroll-view>
     </view>
 </template>
 
 <script setup>
-    import { ref } from 'vue'
+    import { computed } from 'vue'
+    import { onShow } from '@dcloudio/uni-app'
     import CustomNavbar from '@/components/common/CustomNavbar.vue'
+    import { usePrivacyStore, useRiskStore, useUserStore } from '@/store/index'
+    import { DYNAMIC_SCOPES, AGE_GAP_OPTIONS, HIDE_FIELDS } from '@/mock/privacy'
 
-    const dynamicPrivacy = ref(0)
-    const allowWechat = ref(true)
-    const showLocal = ref(true)
-    const wechatConditionText = ref('无门槛，所有人可申请')
+    const privacy = usePrivacyStore()
+    const risk = useRiskStore()
+    const userStore = useUserStore()
 
-    const dynamicPrivacyOptions = [
-        { icon: '🌍', label: '全部可见', desc: '所有人可以查看你的动态' },
-        { icon: '👥', label: '仅匹配好友', desc: '只有匹配好友可以查看' },
-        { icon: '🔒', label: '仅自己可见', desc: '只有你自己可以查看' }
-    ]
+    const scopes = DYNAMIC_SCOPES
+    const hideFields = HIDE_FIELDS
+    const isFemale = computed(() => userStore.gender === 'female')
 
-    const wechatConditions = [
-        '无门槛，所有人可申请',
-        '仅双认证用户可申请',
-        '年龄差超限自动拦截'
-    ]
+    onShow(() => {
+        privacy.restore()
+        risk.restore()
+    })
 
-    const handleBack = () => {
-        uni.navigateBack()
+    const handleBack = () => uni.navigateBack()
+
+    const selectScope = (value) => {
+        privacy.setScope(value)
+        uni.showToast({ title: '已更新动态可见范围', icon: 'none' })
     }
 
-    const selectDynamicPrivacy = (index) => {
-        dynamicPrivacy.value = index
-        uni.showToast({ title: '已更新', icon: 'success' })
+    const toggle = (key) => {
+        const value = privacy.toggle(key)
+        uni.showToast({ title: value ? '已开启' : '已关闭', icon: 'none' })
     }
 
-    const showWechatCondition = () => {
+    const chooseAgeGap = () => {
         uni.showActionSheet({
-            itemList: wechatConditions,
+            itemList: AGE_GAP_OPTIONS.map(item => item.label),
+            fail: () => {},
             success: (res) => {
-                wechatConditionText.value = wechatConditions[res.tapIndex]
+                const hit = AGE_GAP_OPTIONS[res.tapIndex]
+                privacy.setAgeGap(hit.value)
+                uni.showToast({ title: `已设置为${hit.label}`, icon: 'none' })
             }
         })
     }
 
-    const handleHideInfo = () => {
-        uni.showToast({ title: '隐藏资料开发中', icon: 'none' })
+    const toggleHideField = (field) => {
+        privacy.toggleHideField(field)
     }
 
-    const handleDeleteAccount = () => {
-        uni.showModal({
-            title: '⚠️ 警告',
-            content: '注销后账号将无法恢复，所有数据将被清除，确定要注销吗？',
-            success: (res) => {
-                if (res.confirm) {
-                    uni.showModal({
-                        title: '再次确认',
-                        content: '注销后实名信息将保留用于风控，确定继续？',
-                        success: (res2) => {
-                            if (res2.confirm) {
-                                uni.showToast({ title: '账号已注销', icon: 'success' })
-                                setTimeout(() => {
-                                    uni.switchTab({ url: '/pages/match/index' })
-                                }, 500)
-                            }
-                        }
-                    })
-                }
-            }
-        })
-    }
+    const goBlacklist = () => uni.navigateTo({ url: '/pages/profile/blacklist' })
+    const goReports = () => uni.navigateTo({ url: '/pages/common/myReports' })
+    const goAccount = () => uni.navigateTo({ url: '/pages/profile/account' })
 </script>
 
 <style lang="scss" scoped>
@@ -161,7 +224,12 @@
     .privacy-page {
         min-height: 100vh;
         background-color: $bg-page;
-        padding-bottom: $spacing-lg;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .privacy-scroll {
+        flex: 1;
     }
 
     .privacy-list {
@@ -188,7 +256,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: $spacing-sm $spacing-md;
+        padding: 12px $spacing-md;
         border-bottom: 1px solid $border-light;
         cursor: pointer;
 
@@ -206,6 +274,7 @@
         align-items: center;
         gap: $spacing-sm;
         flex: 1;
+        min-width: 0;
     }
 
     .privacy-item__icon {
@@ -214,6 +283,7 @@
 
     .privacy-item__body {
         flex: 1;
+        min-width: 0;
     }
 
     .privacy-item__label {
@@ -226,18 +296,30 @@
         font-size: $font-size-xs;
         color: $text-helper;
         display: block;
+        margin-top: 2px;
     }
 
-    .privacy-item__check {
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        background-color: $primary-color;
-        color: #FFFFFF;
+    .privacy-item__value {
         display: flex;
         align-items: center;
-        justify-content: center;
-        font-size: 14px;
+        gap: 6px;
+    }
+
+    .privacy-item__value-text {
+        font-size: $font-size-xs;
+        color: $text-secondary;
+    }
+
+    .privacy-item__badge {
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        font-size: 10px;
+        line-height: 18px;
+        text-align: center;
+        color: #FFFFFF;
+        background-color: #FF4757;
+        border-radius: 9px;
     }
 
     .privacy-item__arrow {
@@ -245,11 +327,32 @@
         color: $text-helper;
     }
 
+    .privacy-check {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 1px solid $border-light;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        &--on {
+            background-color: $primary-color;
+            border-color: $primary-color;
+        }
+    }
+
+    .privacy-check__mark {
+        font-size: 12px;
+        color: #FFFFFF;
+    }
+
     .privacy-switch {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: $spacing-sm $spacing-md;
+        padding: 12px $spacing-md;
         border-bottom: 1px solid $border-light;
 
         &:last-child {
@@ -259,6 +362,8 @@
 
     .privacy-switch__left {
         flex: 1;
+        min-width: 0;
+        padding-right: 12px;
     }
 
     .privacy-switch__label {
@@ -271,6 +376,16 @@
         font-size: $font-size-xs;
         color: $text-helper;
         display: block;
+        margin-top: 2px;
+    }
+
+    .privacy-tag {
+        font-size: 9px;
+        color: $primary-dark;
+        background-color: $primary-light-bg;
+        padding: 1px 5px;
+        border-radius: 6px;
+        margin-left: 4px;
     }
 
     .privacy-switch__toggle {
@@ -304,17 +419,60 @@
         left: 22px;
     }
 
-    .privacy-delete {
-        width: 100%;
-        height: 48px;
-        background-color: transparent;
-        color: $color-warning;
-        font-size: $font-size-sm;
-        border: none;
-        border-radius: 0;
+    .privacy-hide {
+        padding: 12px $spacing-md 14px;
+    }
 
-        &:active {
-            background-color: $bg-page;
+    .privacy-hide__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+
+    .privacy-hide__label {
+        font-size: $font-size-sm;
+        color: $text-primary;
+    }
+
+    .privacy-hide__value {
+        font-size: 10px;
+        color: $text-helper;
+    }
+
+    .privacy-hide__chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .privacy-chip {
+        padding: 5px 12px;
+        border-radius: 14px;
+        background-color: $bg-page;
+        border: 1px solid $border-light;
+
+        &--on {
+            background-color: $primary-light-bg;
+            border-color: $primary-color;
         }
+    }
+
+    .privacy-chip__text {
+        font-size: $font-size-xs;
+        color: $text-secondary;
+    }
+
+    .privacy-chip--on .privacy-chip__text {
+        color: $primary-dark;
+    }
+
+    .privacy-footer {
+        display: block;
+        text-align: center;
+        font-size: 10px;
+        color: $text-helper;
+        line-height: 1.6;
+        padding: 8px 20px 24px;
     }
 </style>

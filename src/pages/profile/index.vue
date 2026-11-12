@@ -1,5 +1,7 @@
 <template>
     <view class="profile-page">
+        <!-- 全页安全徽章（第 2 章硬性标准） -->
+        <SafetyBadge />
         <!-- ========================================== -->
         <!-- 1. 顶部 Header (未登录 / 已登录) -->
         <!-- ========================================== -->
@@ -223,14 +225,31 @@
         <!-- 7. 工具菜单 -->
         <!-- ========================================== -->
         <view class="menu-card">
+            <!-- 3.8 裂变邀请入口 -->
+            <view class="menu-card__item" @click="goToInvite">
+                <text class="menu-card__icon icon icon-share" style="color: #8AA07B;" />
+                <text class="menu-card__label">邀请好友</text>
+                <text class="menu-card__tip">好友实名后双方各得 {{ inviteRewardLikes }} 次心动</text>
+                <text class="menu-card__arrow icon icon-arrow-right"></text>
+            </view>
             <view class="menu-card__item" @click="checkAuthAndExecute(goToPrivacy)">
                 <text class="menu-card__icon icon icon-lock" />
                 <text class="menu-card__label">隐私设置</text>
                 <text class="menu-card__arrow icon icon-arrow-right"></text>
             </view>
-            <view class="menu-card__item" @click="goToSafetyCenter">
+            <view class="menu-card__item" @click="goToAccount">
                 <text class="menu-card__icon icon icon-shield" style="color: #FF9800;" />
-                <text class="menu-card__label">安全中心</text>
+                <text class="menu-card__label">账号与安全</text>
+                <!-- 3.7 风控状态外显：处罚 / 降权 -->
+                <text class="menu-card__tip" :class="{ 'menu-card__tip--warn': securityWarn }">
+                    {{ securityText }}
+                </text>
+                <text class="menu-card__arrow icon icon-arrow-right"></text>
+            </view>
+            <view class="menu-card__item" @click="goToMyReports">
+                <text class="menu-card__icon icon icon-flag" style="color: #C0392B;" />
+                <text class="menu-card__label">我的举报</text>
+                <text v-if="risk.pendingReports" class="menu-card__tip">{{ risk.pendingReports }} 条处理中</text>
                 <text class="menu-card__arrow icon icon-arrow-right"></text>
             </view>
             <view class="menu-card__item" @click="goToAntiFraud">
@@ -269,13 +288,28 @@
 import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import PermissionModal from '@/components/common/PermissionModal.vue'
-import { useUserStore, useEquityStore, useMatchStore, useSocialStore } from '@/store/index'
+import SafetyBadge from '@/components/common/SafetyBadge.vue'
+import { useUserStore, useEquityStore, useMatchStore, useSocialStore, useRiskStore } from '@/store/index'
 import { COMPLETENESS_THRESHOLD, COMPLETENESS_BONUS } from '@/store/equity'
+import { INVITE_REWARD_LIKES } from '@/mock/invite'
+
+const inviteRewardLikes = INVITE_REWARD_LIKES
 
 const userStore = useUserStore()
 const equity = useEquityStore()
 const matchStore = useMatchStore()
 const socialStore = useSocialStore()
+const risk = useRiskStore()
+
+// 3.7 风控状态外显：封禁 > 处罚 > 降权 > 正常
+const securityText = computed(() => {
+    if (risk.accountStatus === 'banned') return '已封禁'
+    if (risk.accountStatus === 'restricted') return risk.penaltyLabel
+    if (risk.deprioritized) return '已降权'
+    return ''
+})
+
+const securityWarn = computed(() => risk.penaltyActive || risk.deprioritized)
 
 // ===== 1. 登录态与用户信息（全部由 store 推导，不再本地造假） =====
 const isLogin = computed(() => userStore.isLogin)
@@ -406,14 +440,22 @@ const goToPrivacy = () => {
 const goToAntiFraud = () => {
     uni.navigateTo({ url: '/pages/common/antiFraud' })
 }
-const goToSafetyCenter = () => {
-    uni.showToast({ title: '安全中心开发中', icon: 'none' })
+const goToAccount = () => {
+    uni.navigateTo({ url: '/pages/profile/account' })
+}
+const goToMyReports = () => {
+    uni.navigateTo({ url: '/pages/common/myReports' })
 }
 const handleFeedback = () => {
     uni.navigateTo({ url: '/pages/common/feedback' })
 }
 const goToSettings = () => {
     uni.navigateTo({ url: '/pages/profile/settings' })
+}
+// 3.8 裂变邀请
+const goToInvite = () => {
+    if (!isLogin.value) return handleLoginGuide()
+    uni.navigateTo({ url: '/pages/invite/index' })
 }
 
 // ===== 7. 交互 =====
@@ -449,6 +491,8 @@ onShow(() => {
     if (!socialStore.seeded) socialStore.restore()
     equity.ensureToday()
     socialStore.ensureToday()
+    // 3.7 举报时效推进（AI 初审 5 分钟 → 人工审核 → 到期出结果）
+    risk.restore()
 })
 </script>
 
@@ -1194,6 +1238,16 @@ onShow(() => {
         flex: 1;
         font-size: 14px;
         color: $text-primary;
+    }
+
+    .menu-card__tip {
+        font-size: 10px;
+        color: $primary-dark;
+        margin-right: 6px;
+
+        &--warn {
+            color: #C0392B;
+        }
     }
 
     .menu-card__arrow {

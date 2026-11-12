@@ -27,11 +27,15 @@
                 <slot name="right" />
             </view>
         </view>
+
+        <!-- 第 2 章硬性标准：全页「实名核验・反诈保障」安全徽章（可关闭） -->
+        <SafetyBadge v-if="safetyBadge" />
     </view>
 </template>
 
 <script setup>
     import { ref, onMounted } from 'vue'
+    import SafetyBadge from '@/components/common/SafetyBadge.vue'
 
     const props = defineProps({
         title: {
@@ -45,6 +49,11 @@
         transparent: {
             type: Boolean,
             default: false
+        },
+        // 全页安全徽章：默认展示，个别全屏沉浸页可关闭
+        safetyBadge: {
+            type: Boolean,
+            default: true
         }
     })
 

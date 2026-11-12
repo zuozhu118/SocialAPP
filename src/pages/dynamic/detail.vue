@@ -124,22 +124,34 @@
                          :confirm-text="permissionPayload.confirmText"
                          @confirm="handlePermissionConfirm"
                          @close="showPermission = false" />
+
+        <!-- 3.8 裂变分享 -->
+        <ShareSheet :visible="shareVisible"
+                    title="分享这条动态"
+                    desc="好友通过你的链接注册并实名后，双方各得永久心动"
+                    :target="shareTarget"
+                    :target-title="shareTitle"
+                    @close="shareVisible = false" />
     </view>
 </template>
 
 <script setup>
     import { ref, computed } from 'vue'
-    import { onLoad } from '@dcloudio/uni-app'
+    import { onLoad, onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
     import CustomNavbar from '@/components/common/CustomNavbar.vue'
     import UserCard from '@/components/common/UserCard.vue'
     import PermissionModal from '@/components/common/PermissionModal.vue'
+    import ShareSheet from '@/components/common/ShareSheet.vue'
     import { usePermission } from '@/composables/usePermission'
-    import { useSquareStore } from '@/store/index'
+    import { useSquareStore, useInviteStore, useUserStore } from '@/store/index'
     import { detectContact } from '@/store/match'
+    import { buildSharePath, buildShareQuery } from '@/utils/share'
     import { currentUserProfile } from '@/mock/users'
     import { businessCopy } from '@/mock/copy'
 
     const square = useSquareStore()
+    const inviteStore = useInviteStore()
+    const userStore = useUserStore()
     const { guard, isGuest, isCertified } = usePermission()
 
     const myId = currentUserProfile.id
@@ -186,7 +198,33 @@
             dynamicId.value = Number.isFinite(Number(options.id)) ? Number(options.id) : options.id
         }
         if (options?.focus === 'comment') focusAfterLoad.value = true
+
+        // 3.8 朋友圈分享带 invite 参数落地：未实名用户统一进入游客落地页
+        if (options?.invite) {
+            inviteStore.bindInviter(options.invite)
+            if (userStore.level !== 'certified') {
+                const back = `/pages/dynamic/detail?id=${options.id || ''}`
+                uni.redirectTo({
+                    url: `/pages/common/landing?invite=${options.invite}&target=${encodeURIComponent(back)}&title=${encodeURIComponent('一条同城动态')}`
+                })
+            }
+        }
     })
+
+    // ===== 3.8 分享（微信好友 / 朋友圈）=====
+    const shareVisible = ref(false)
+    const shareTarget = computed(() => (dynamicId.value ? `/pages/dynamic/detail?id=${dynamicId.value}` : ''))
+    const shareTitle = computed(() => (detail.value ? `${detail.value.userName} 的同城动态` : '同城真实交友'))
+
+    onShareAppMessage(() => ({
+        title: shareTitle.value,
+        path: buildSharePath({ target: shareTarget.value, title: shareTitle.value })
+    }))
+
+    onShareTimeline(() => ({
+        title: shareTitle.value,
+        query: buildShareQuery({ target: shareTarget.value, title: shareTitle.value })
+    }))
 
     const handleBack = () => {
         uni.navigateBack()
@@ -228,7 +266,7 @@
     }
 
     const handleShare = () => {
-        uni.showToast({ title: '点击右上角分享', icon: 'none' })
+        shareVisible.value = true
     }
 
     const handleReport = () => {

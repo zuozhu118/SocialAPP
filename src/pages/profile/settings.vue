@@ -40,7 +40,26 @@
                 <view class="settings-item" @click="handleBlacklist">
                     <text class="settings-item__icon icon icon-close" />
                     <text class="settings-item__label">黑名单</text>
-                    <text class="settings-item__desc">0人</text>
+                    <text class="settings-item__desc">{{ privacy.blacklistCount }}人</text>
+                    <text class="settings-item__arrow">›</text>
+                </view>
+            </view>
+
+            <!-- 账号与安全 -->
+            <view class="settings-group">
+                <text class="settings-group__title">账号与安全</text>
+
+                <view class="settings-item" @click="handleAccount">
+                    <text class="settings-item__icon icon icon-shield" />
+                    <text class="settings-item__label">账号与安全</text>
+                    <text class="settings-item__desc">{{ accountDesc }}</text>
+                    <text class="settings-item__arrow">›</text>
+                </view>
+
+                <view class="settings-item" @click="handleMyReports">
+                    <text class="settings-item__icon icon icon-comment" />
+                    <text class="settings-item__label">我的举报</text>
+                    <text class="settings-item__desc">{{ reportDesc }}</text>
                     <text class="settings-item__arrow">›</text>
                 </view>
             </view>
@@ -85,7 +104,31 @@
 </template>
 
 <script setup>
+    import { computed } from 'vue'
+    import { onShow } from '@dcloudio/uni-app'
     import CustomNavbar from '@/components/common/CustomNavbar.vue'
+    import { usePrivacyStore, useRiskStore } from '@/store/index'
+
+    const privacy = usePrivacyStore()
+    const risk = useRiskStore()
+
+    const accountDesc = computed(() => {
+        if (risk.deactivated) return '已注销'
+        if (risk.accountStatus === 'banned') return '已封禁'
+        if (risk.accountStatus === 'restricted') return risk.penaltyLabel
+        if (risk.deprioritized) return '已降权'
+        return '正常'
+    })
+
+    const reportDesc = computed(() => {
+        const pending = risk.pendingReports
+        return pending ? `${pending} 条处理中` : `${risk.reportCount} 条记录`
+    })
+
+    onShow(() => {
+        privacy.restore()
+        risk.restore()
+    })
 
     const handleBack = () => {
         uni.navigateBack()
@@ -108,7 +151,15 @@
     }
 
     const handleBlacklist = () => {
-        uni.showToast({ title: '黑名单开发中', icon: 'none' })
+        uni.navigateTo({ url: '/pages/profile/blacklist' })
+    }
+
+    const handleAccount = () => {
+        uni.navigateTo({ url: '/pages/profile/account' })
+    }
+
+    const handleMyReports = () => {
+        uni.navigateTo({ url: '/pages/common/myReports' })
     }
 
     const handleAntiFraud = () => {

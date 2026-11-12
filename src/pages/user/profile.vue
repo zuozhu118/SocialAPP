@@ -211,6 +211,8 @@
         <view class="profile-footer">
             <text class="profile-footer__ip">IP属地：{{ userInfo.ipLocation || '未知' }}</text>
             <view class="profile-footer__ops">
+                <text class="profile-footer__link" @click="openShare">分享</text>
+                <text class="profile-footer__split">·</text>
                 <text class="profile-footer__link" @click="handleReport">举报</text>
                 <text class="profile-footer__split">·</text>
                 <text class="profile-footer__link" @click="handleBlock">拉黑</text>
@@ -224,11 +226,22 @@
         <view class="like-fab" :class="{ 'like-fab--active': userInfo.isFollowed }" @click="toggleFollow">
             <text class="like-fab__icon">{{ userInfo.isFollowed ? '❤️' : '🤍' }}</text>
         </view>
+
+        <!-- ===== 3.8 裂变分享 ===== -->
+        <ShareSheet :visible="shareVisible"
+                    title="分享 TA 的主页"
+                    desc="好友通过你的链接注册并实名后，双方各得永久心动"
+                    :target="shareTarget"
+                    :target-title="shareTitle"
+                    @close="shareVisible = false" />
     </view>
 </template>
 
 <script setup>
     import { ref, onMounted } from 'vue'
+    import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
+    import ShareSheet from '@/components/common/ShareSheet.vue'
+    import { buildSharePath, buildShareQuery } from '@/utils/share'
 
     // 剧本类型映射
     const getScriptType = (name) => {
@@ -359,6 +372,27 @@
     const handleReport = () => {
         uni.navigateTo({ url: '/pages/common/report' })
     }
+
+    // ===== 3.8 分享主页（微信好友 / 朋友圈）=====
+    const shareVisible = ref(false)
+    const shareTarget = ref('')
+    const shareTitle = ref('')
+
+    const openShare = () => {
+        shareTarget.value = `/pages/user/profile?userId=${userInfo.value.userId}`
+        shareTitle.value = `${userInfo.value.userName} 的同城主页`
+        shareVisible.value = true
+    }
+
+    onShareAppMessage(() => ({
+        title: shareTitle.value || `${userInfo.value.userName} 的同城主页`,
+        path: buildSharePath({ target: shareTarget.value, title: shareTitle.value })
+    }))
+
+    onShareTimeline(() => ({
+        title: shareTitle.value || `${userInfo.value.userName} 的同城主页`,
+        query: buildShareQuery({ target: shareTarget.value, title: shareTitle.value })
+    }))
 
     // 拉黑
     const handleBlock = () => {

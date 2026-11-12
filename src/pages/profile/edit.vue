@@ -504,7 +504,11 @@
 </template>
 
 <script setup>
-    import { ref, computed } from 'vue'
+    import { ref, computed, onMounted } from 'vue'
+    import { useUserStore } from '@/store/index'
+
+    // ===== Store（第 6 章：改城市 24h 生效）=====
+    const userStore = useUserStore()
 
     // ===== 拖拽状态 =====
     const dragIndex = ref(null)
@@ -914,15 +918,36 @@
 
     // ===== 保存 =====
     const handleSave = () => {
+        // 第 6 章闭环：常住城市手动修改后 24 小时生效（生效前仍按旧城市推荐）
+        const targetCity = form.value.city
+        let cityResult = null
+        if (targetCity) {
+            cityResult = userStore.changeCity(targetCity)
+        }
+        const cityChanged = cityResult && cityResult.changed
         uni.showLoading({ title: '保存中...' })
         setTimeout(() => {
             uni.hideLoading()
-            uni.showToast({ title: '保存成功', icon: 'success' })
+            if (cityChanged) {
+                uni.showToast({
+                    title: `已保存，城市改为 ${cityResult.to}，24 小时后生效`,
+                    icon: 'none',
+                    duration: 2200
+                })
+            } else {
+                uni.showToast({ title: '保存成功', icon: 'success' })
+            }
             setTimeout(() => {
                 uni.navigateBack()
-            }, 800)
+            }, cityChanged ? 1800 : 800)
         }, 800)
     }
+
+    onMounted(() => {
+        // 城市字段与账号生效城市对齐（改城市 24h 生效）
+        const effective = userStore.matchCity
+        if (effective) form.value.city = effective
+    })
 </script>
 
 <style lang="scss" scoped>

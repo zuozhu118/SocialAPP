@@ -110,18 +110,22 @@
 <script setup>
     import { ref, computed } from 'vue'
     import { onShow } from '@dcloudio/uni-app'
-    import { useMatchStore } from '@/store/index'
+    import { useMatchStore, usePrivacyStore } from '@/store/index'
     import { findUserById } from '@/mock/users'
-    import { emptyCopy } from '@/mock/copy'
+    import { emptyCopy, businessCopy } from '@/mock/copy'
     import { formatRemain } from '@/store/match'
 
     const matchStore = useMatchStore()
+    const privacyStore = usePrivacyStore()
 
     const currentTab = ref('received')
     const now = ref(Date.now())
 
     onShow(() => {
         matchStore.restore()
+        // 3.6 隐私：24h 未处理自动拒绝（女性默认开启），先同步隐私配置再判定
+        privacyStore.restore()
+        matchStore.autoRejectCheck()
         matchStore.expireCheck()
         now.value = Date.now()
     })
@@ -172,7 +176,7 @@
                 const result = matchStore.agreeApplication(item.id)
                 now.value = Date.now()
                 uni.showToast({
-                    title: result.ok ? '已同意，微信号已展示' : '操作失败，请重试',
+                    title: result.ok ? '已同意，微信号已展示' : businessCopy.systemError,
                     icon: result.ok ? 'success' : 'none'
                 })
             }

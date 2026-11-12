@@ -246,6 +246,171 @@
                 </text>
             </view>
 
+            <!-- 通知与裂变（M7） -->
+            <view class="debug-card">
+                <view class="debug-card__title">通知与裂变</view>
+                <view class="debug-meta">
+                    <view class="debug-meta__item">
+                        <text class="debug-meta__label">通知总数</text>
+                        <text class="debug-meta__value">{{ notify.totalCount }}</text>
+                    </view>
+                    <view class="debug-meta__item">
+                        <text class="debug-meta__label">未读</text>
+                        <text class="debug-meta__value">{{ notify.unreadCount }}</text>
+                    </view>
+                    <view class="debug-meta__item">
+                        <text class="debug-meta__label">今日额度提醒</text>
+                        <text class="debug-meta__value">{{ quotaPushedText }}</text>
+                    </view>
+                    <view class="debug-meta__item">
+                        <text class="debug-meta__label">已邀请好友</text>
+                        <text class="debug-meta__value">{{ invite.inviteCount }} 人</text>
+                    </view>
+                    <view class="debug-meta__item">
+                        <text class="debug-meta__label">邀请获得心动</text>
+                        <text class="debug-meta__value">{{ invite.rewardLikes }} 次</text>
+                    </view>
+                    <view class="debug-meta__item">
+                        <text class="debug-meta__label">我的邀请码</text>
+                        <text class="debug-meta__value">{{ invite.code || '——' }}</text>
+                    </view>
+                </view>
+                <view class="debug-actions">
+                    <button class="debug-btn" @click="goNotifyPage">看通知页</button>
+                    <button class="debug-btn" @click="goInvitePage">看邀请页</button>
+                </view>
+                <view class="debug-actions">
+                    <button class="debug-btn" @click="simulateLikeMe">模拟收到心动</button>
+                    <button class="debug-btn" @click="simulateMatchM7">模拟匹配成功</button>
+                </view>
+                <view class="debug-actions">
+                    <button class="debug-btn" @click="simulateApplyReceive">模拟收到申请</button>
+                    <button class="debug-btn" @click="simulateLikeDynamic">模拟收到点赞</button>
+                </view>
+                <view class="debug-actions">
+                    <button class="debug-btn" @click="simulateComment">模拟收到评论</button>
+                    <button class="debug-btn" @click="pushQuota9">9 点额度提醒</button>
+                </view>
+                <view class="debug-actions">
+                    <button class="debug-btn" @click="pushQuota20">20 点额度提醒</button>
+                    <button class="debug-btn" @click="markAllNotifyRead">通知全部已读</button>
+                </view>
+                <view class="debug-actions">
+                    <button class="debug-btn" @click="simulateInviteJoin">模拟好友加入</button>
+                    <button class="debug-btn" @click="simulateInviteReward">模拟好友实名</button>
+                </view>
+                <view class="debug-actions">
+                    <button class="debug-btn" @click="goLandingPage">游客落地页</button>
+                    <button class="debug-btn debug-btn--danger" @click="resetNotifyInvite">重置通知与邀请</button>
+                </view>
+                <text class="debug-card__hint">
+                    游客不推匹配类通知；未实名推送实名引导；额度提醒仅男性 9/20 点推送。邀请奖励双方各 +5 次永久心动，无现金奖励
+                </text>
+            </view>
+
+            <!-- 隐私与风控（M8） -->
+            <view class="debug-card">
+                <view class="debug-card__title">隐私与风控</view>
+                <view class="debug-meta">
+                    <view class="debug-meta__item">
+                        <text class="debug-meta__label">动态可见范围</text>
+                        <text class="debug-meta__value">{{ privacy.dynamicScope === 'all' ? '全部' : privacy.dynamicScope === 'matched' ? '仅匹配' : '仅自己' }}</text>
+                    </view>
+                    <view class="debug-meta__item">
+                        <text class="debug-meta__label">自动拒绝</text>
+                        <text class="debug-meta__value">{{ autoRejectText }}</text>
+                    </view>
+                    <view class="debug-meta__item">
+                        <text class="debug-meta__label">黑名单</text>
+                        <text class="debug-meta__value">{{ privacy.blacklistCount }} 人</text>
+                    </view>
+                    <view class="debug-meta__item">
+                        <text class="debug-meta__label">我的举报</text>
+                        <text class="debug-meta__value">{{ risk.reportCount }} 条</text>
+                    </view>
+                    <view class="debug-meta__item">
+                        <text class="debug-meta__label">处理中</text>
+                        <text class="debug-meta__value">{{ risk.pendingReports }} 条</text>
+                    </view>
+                    <view class="debug-meta__item">
+                        <text class="debug-meta__label">风控分</text>
+                        <text class="debug-meta__value">{{ risk.riskScore }}</text>
+                    </view>
+                    <view class="debug-meta__item">
+                        <text class="debug-meta__label">账号状态</text>
+                        <text class="debug-meta__value">{{ risk.accountStatus === 'normal' ? '正常' : risk.accountStatus === 'banned' ? '已封禁' : risk.penaltyLabel }}</text>
+                    </view>
+                    <view class="debug-meta__item">
+                        <text class="debug-meta__label">注销状态</text>
+                        <text class="debug-meta__value">{{ risk.deactivated ? '已注销' : '正常' }}</text>
+                    </view>
+                </view>
+                <view class="debug-actions">
+                    <button class="debug-btn" @click="goPrivacyPage">看隐私设置</button>
+                    <button class="debug-btn" @click="goBlacklistPage">看黑名单</button>
+                </view>
+                <view class="debug-actions">
+                    <button class="debug-btn" @click="goReportPage">看举报页</button>
+                    <button class="debug-btn" @click="goMyReportsPage">看我的举报</button>
+                </view>
+                <view class="debug-actions">
+                    <button class="debug-btn" @click="goAccountPage">看账号与安全</button>
+                    <button class="debug-btn" @click="simulateBlock">拉黑一个用户</button>
+                </view>
+                <view class="debug-actions">
+                    <button class="debug-btn" @click="simulateReport">模拟提交骚扰举报</button>
+                    <button class="debug-btn" @click="simulateApply24h">模拟 24h 未处理申请</button>
+                </view>
+                <view class="debug-actions">
+                    <button class="debug-btn" @click="advanceAudit">推进审核到出结果</button>
+                    <button class="debug-btn" @click="triggerRiskEvent">触发风控扣分</button>
+                </view>
+                <view class="debug-actions">
+                    <button class="debug-btn" @click="applyPenalty">下发禁发 7 天</button>
+                    <button class="debug-btn" @click="reviveAccount">恢复账号正常</button>
+                </view>
+                <view class="debug-actions">
+                    <button class="debug-btn debug-btn--danger" @click="resetPrivacyRisk">重置隐私与风控</button>
+                </view>
+                <text class="debug-card__hint">
+                    女性骚扰/诈骗/色情举报 12h 置顶；普通举报 24h；AI 初审 5 分钟。风控分低于 60 自动降权，不向女性推送
+                </text>
+            </view>
+
+            <!-- 全局收口（M9） -->
+            <view class="debug-card">
+                <view class="debug-card__title">城市生效与全局文案</view>
+                <view class="debug-meta">
+                    <view class="debug-meta__item">
+                        <text class="debug-meta__label">生效城市</text>
+                        <text class="debug-meta__value">{{ userStore.matchCity || '——' }}</text>
+                    </view>
+                    <view class="debug-meta__item">
+                        <text class="debug-meta__label">待生效切换</text>
+                        <text class="debug-meta__value">{{ cityPendingText }}</text>
+                    </view>
+                    <view class="debug-meta__item">
+                        <text class="debug-meta__label">时段标题</text>
+                        <text class="debug-meta__value">{{ timeTitleText }}</text>
+                    </view>
+                </view>
+                <view class="debug-actions">
+                    <button class="debug-btn" @click="simulateChangeCity">改为上海（24h 生效）</button>
+                    <button class="debug-btn" @click="advanceCity">拨快 24 小时</button>
+                </view>
+                <view class="debug-actions">
+                    <button class="debug-btn" @click="clearCityChange">清除切换记录</button>
+                    <button class="debug-btn" @click="showWeakNetworkToast">弱网提示文案</button>
+                </view>
+                <view class="debug-actions">
+                    <button class="debug-btn" @click="showSystemErrorToast">系统异常文案</button>
+                    <button class="debug-btn" @click="showComfortCopy">3 天无匹配安抚文案</button>
+                </view>
+                <text class="debug-card__hint">
+                    第 6 章：仅手动填写常住城市，改城市 24 小时生效；生效前匹配/广场仍按旧城市推荐
+                </text>
+            </view>
+
             <!-- 数据管理 -->
             <view class="debug-card">
                 <view class="debug-card__title">本地数据</view>
@@ -263,13 +428,33 @@
     import { onShow } from '@dcloudio/uni-app'
     import CustomNavbar from '@/components/common/CustomNavbar.vue'
     import { findUserById } from '@/mock/users'
-    import { useUserStore, useEquityStore, useMatchStore, useSquareStore, useSocialStore } from '@/store/index'
+    import { businessCopy, emptyCopy, getTimeSlotTitle } from '@/mock/copy'
+    import {
+        useUserStore,
+        useEquityStore,
+        useMatchStore,
+        useSquareStore,
+        useSocialStore,
+        useNotifyStore,
+        useInviteStore,
+        usePrivacyStore,
+        useRiskStore
+    } from '@/store/index'
 
     const userStore = useUserStore()
     const equity = useEquityStore()
     const matchStore = useMatchStore()
     const square = useSquareStore()
     const social = useSocialStore()
+    const notify = useNotifyStore()
+    const invite = useInviteStore()
+    const privacy = usePrivacyStore()
+    const risk = useRiskStore()
+
+    const quotaPushedText = computed(() => {
+        const list = notify.quotaPushedToday
+        return list.length ? list.map(h => `${h}点`).join(' / ') : '未推送'
+    })
 
     const levels = [
         { label: '游客', value: 'guest' },
@@ -287,6 +472,11 @@
         matchStore.restore()
         square.restore()
         social.restore()
+        notify.restore()
+        invite.restore()
+        privacy.restore()
+        risk.restore()
+        notify.syncBadge()
     })
 
     const handleBack = () => uni.navigateBack()
@@ -329,6 +519,10 @@
                 matchStore.resetAll()
                 square.resetAll()
                 social.resetAll()
+                notify.resetAll()
+                invite.resetAll()
+                privacy.resetAll()
+                risk.resetAll()
                 uni.showToast({ title: '已恢复初始状态', icon: 'none' })
             }
         })
@@ -484,6 +678,262 @@
         userStore.resetCertifications()
         uni.showToast({ title: '认证数据已重置', icon: 'none' })
     }
+
+    // ===== M7 通知与裂变 =====
+    const goNotifyPage = () => {
+        uni.switchTab({ url: '/pages/notifications/index' })
+    }
+
+    const goInvitePage = () => {
+        uni.navigateTo({ url: '/pages/invite/index' })
+    }
+
+    const goLandingPage = () => {
+        const target = encodeURIComponent('/pages/dynamic/detail?id=1')
+        uni.navigateTo({
+            url: `/pages/common/landing?invite=FY88888&target=${target}&title=${encodeURIComponent('一条同城动态')}`
+        })
+    }
+
+    const simulateLikeMe = () => {
+        const res = social.simulateLikeMe(11)
+        uni.showToast({
+            title: res.ok ? `已模拟 ${findUserById(11)?.name || ''} 心动你` : '该用户已在喜欢我的列表',
+            icon: 'none'
+        })
+    }
+
+    const simulateMatchM7 = () => {
+        matchStore.createMatch(6)
+        uni.showToast({ title: '已模拟双向匹配', icon: 'none' })
+    }
+
+    const simulateApplyReceive = () => {
+        notify.pushApplyReceive(8)
+        uni.showToast({ title: '已模拟收到微信申请', icon: 'none' })
+    }
+
+    const simulateLikeDynamic = () => {
+        notify.pushDynamicInteract('like_dynamic', { name: '沈星野', dynamicId: 1 })
+        uni.showToast({ title: '已模拟收到点赞', icon: 'none' })
+    }
+
+    const simulateComment = () => {
+        notify.pushDynamicInteract('comment_dynamic', {
+            name: '江小满',
+            dynamicId: 1,
+            text: '这张照片拍得真有感觉'
+        })
+        uni.showToast({ title: '已模拟收到评论', icon: 'none' })
+    }
+
+    const reportQuotaResult = (res) => {
+        const map = {
+            female_forbidden: '女性禁止推送额度提醒',
+            not_certified: '未实名用户不推额度提醒',
+            before_slot: '当前未到 9 点，暂不推送',
+            already: '该时段已推送过',
+            no_quota: '额度已用完，无需提醒'
+        }
+        uni.showToast({
+            title: res.pushed ? `已推送 ${res.slot} 点额度提醒` : (map[res.reason] || '未推送'),
+            icon: 'none'
+        })
+    }
+
+    const pushQuota9 = () => reportQuotaResult(notify.ensureQuotaReminder(9))
+    const pushQuota20 = () => reportQuotaResult(notify.ensureQuotaReminder(20))
+
+    const markAllNotifyRead = () => {
+        const changed = notify.markAllRead('all')
+        uni.showToast({ title: `已读 ${changed} 条`, icon: 'none' })
+    }
+
+    const simulateInviteJoin = () => {
+        const record = invite.simulateFriendJoin('测试好友')
+        uni.showToast({ title: `${record.name} 已加入`, icon: 'none' })
+    }
+
+    const simulateInviteReward = () => {
+        const res = invite.simulateFriendRealname()
+        uni.showToast({
+            title: res.ok ? `${res.name} 已实名，+${res.likes} 次永久心动` : '没有待实名好友',
+            icon: 'none'
+        })
+    }
+
+    const resetNotifyInvite = () => {
+        notify.resetAll()
+        invite.resetAll()
+        uni.showToast({ title: '通知与邀请已重置', icon: 'none' })
+    }
+
+    // ===== M8 隐私与风控 =====
+    const autoRejectText = computed(() => {
+        if (!privacy.autoRejectEnabled) return '关闭'
+        return `${privacy.autoRejectHours}h`
+    })
+
+    const goPrivacyPage = () => uni.navigateTo({ url: '/pages/profile/privacy' })
+    const goBlacklistPage = () => uni.navigateTo({ url: '/pages/profile/blacklist' })
+    const goReportPage = () => uni.navigateTo({ url: '/pages/common/report?userId=9&name=%E6%B2%88%E6%98%9F%E9%87%8E' })
+    const goMyReportsPage = () => uni.navigateTo({ url: '/pages/common/myReports' })
+    const goAccountPage = () => uni.navigateTo({ url: '/pages/profile/account' })
+
+    // 拉黑：优先拉黑还没在黑名单里的北京用户
+    const simulateBlock = () => {
+        const candidates = [4, 8, 9, 12, 13]
+        const targetId = candidates.find(id => !privacy.blacklistIds.includes(id))
+        if (!targetId) {
+            uni.showToast({ title: '候选用户都已拉黑', icon: 'none' })
+            return
+        }
+        const target = findUserById(targetId)
+        privacy.blockUser(target, '调试拉黑')
+        uni.showToast({ title: `已拉黑 ${target.name}`, icon: 'none' })
+    }
+
+    const simulateReport = () => {
+        const res = risk.submitReport({
+            targetId: 9,
+            targetName: '沈星野',
+            reason: 'harassment',
+            desc: '调试：评论区多次骚扰'
+        })
+        if (!res.ok) {
+            uni.showToast({ title: '提交失败', icon: 'none' })
+            return
+        }
+        const hours = Math.round((res.sla || 0) / (60 * 60 * 1000))
+        uni.showToast({
+            title: `已提交，${hours}h 时效${res.report.priority === 'female' ? '（女性通道）' : ''}`,
+            icon: 'none'
+        })
+    }
+
+    // 造一条超时 24h 的待处理申请，验证自动拒绝
+    const simulateApply24h = () => {
+        const now = Date.now()
+        const target = findUserById(8)
+        let item = matchStore.applications.find(a => a.direction === 'in' && a.fromUserId === 8)
+        if (!item) {
+            item = {
+                id: `app_${now}`,
+                fromUserId: 8,
+                toUserId: userStore.userInfo?.id || 10000,
+                direction: 'in',
+                status: 'pending',
+                createdAt: now,
+                handledAt: 0,
+                expireAt: now + 72 * 60 * 60 * 1000,
+                message: ''
+            }
+            matchStore.applications.unshift(item)
+        }
+        item.status = 'pending'
+        item.createdAt = now - 25 * 60 * 60 * 1000
+        item.handledAt = 0
+        matchStore.persist()
+        const changed = matchStore.autoRejectCheck()
+        uni.showToast({
+            title: changed ? `已自动拒绝 ${changed} 条（来自 ${target.name}）` : '无超时申请',
+            icon: 'none'
+        })
+    }
+
+    const advanceAudit = () => {
+        const future = Date.now() + 25 * 60 * 60 * 1000
+        risk.advanceReports(future)
+        uni.showToast({ title: '审核已推进到我设置的时间点', icon: 'none' })
+    }
+
+    const triggerRiskEvent = () => {
+        const res = risk.applyRiskEvent('high_frequency_like')
+        if (!res.ok) {
+            uni.showToast({ title: '事件无效', icon: 'none' })
+            return
+        }
+        uni.showToast({
+            title: `风控分 ${res.score}${res.deprioritized ? '，已降权' : ''}`,
+            icon: 'none'
+        })
+    }
+
+    const applyPenalty = () => {
+        risk.handleReport(risk.sortedReports.find(r => r.status !== 'done')?.id || 'rep_2', {
+            penalty: 'ban_post',
+            result: 'punished'
+        })
+        risk.penalties = {
+            code: 'ban_post',
+            level: 2,
+            until: Date.now() + 7 * 24 * 60 * 60 * 1000,
+            reason: '调试：恶意骚扰（禁发 7 天）'
+        }
+        risk.persist()
+        uni.showToast({ title: '已下发禁发 7 天', icon: 'none' })
+    }
+
+    const reviveAccount = () => {
+        risk.reviveAccount()
+        risk.deactivation = {
+            status: 'none',
+            requestedAt: 0,
+            effectiveAt: 0,
+            phoneReleasedAt: 0,
+            realnamePurgeAt: 0,
+            idLockUntil: 0
+        }
+        risk.persist()
+        uni.showToast({ title: '账号已恢复正常', icon: 'none' })
+    }
+
+    const resetPrivacyRisk = () => {
+        privacy.resetAll()
+        risk.resetAll()
+        uni.showToast({ title: '隐私与风控已重置', icon: 'none' })
+    }
+
+    // ===== M9 全局收口 =====
+    const cityPendingText = computed(() => {
+        const pending = userStore.cityPending
+        if (!pending) return '无'
+        return `→ ${pending.to}（${pending.hours}h）`
+    })
+
+    const timeTitleText = computed(() => getTimeSlotTitle())
+
+    const simulateChangeCity = () => {
+        const res = userStore.changeCity('上海')
+        if (!res.ok) {
+            uni.showToast({ title: '城市未变化', icon: 'none' })
+            return
+        }
+        uni.showToast({
+            title: res.changed ? `已提交，24 小时后按上海推荐` : '城市未变化',
+            icon: 'none'
+        })
+    }
+
+    const advanceCity = () => {
+        const ok = userStore.advanceCityChange()
+        uni.showToast({ title: ok ? '已拨快 24 小时，新城市生效' : '没有待生效的城市切换', icon: 'none' })
+    }
+
+    const clearCityChange = () => {
+        userStore.cityChange = { from: '', to: '', at: 0 }
+        userStore.persist()
+        uni.showToast({ title: '切换记录已清除', icon: 'none' })
+    }
+
+    // 文案库复用自检：弱网 / 系统异常 / 安抚提示
+    const showWeakNetworkToast = () => uni.showToast({ title: businessCopy.weakNetwork, icon: 'none' })
+    const showSystemErrorToast = () => uni.showToast({ title: businessCopy.systemError, icon: 'none' })
+    const showComfortCopy = () => uni.showModal({
+        title: '连续 3 天无匹配',
+        content: `慢慢来，契合的缘分值得等待。${emptyCopy.matchEmpty}`,
+        showCancel: false
+    })
 </script>
 
 <style lang="scss" scoped>

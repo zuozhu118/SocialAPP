@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import useEquityStore from './equity'
+import useNotifyStore from './notify'
+import usePrivacyStore from './privacy'
 import {
     dynamics as seedDynamics,
     CURRENT_CITY,
@@ -156,12 +158,13 @@ export default defineStore('square', {
                     commentCount: (item.commentList || []).length
                 }))[0] || null,
 
-        // 评论列表：过滤被拉黑用户 + 时间装饰
+        // 评论列表：过滤被拉黑用户 + 时间装饰（黑名单以 privacy store 为准，M8）
         commentsOf: (state) => (id) => {
             const item = state.dynamics.find(d => d.id === id)
             if (!item) return []
+            const privacy = usePrivacyStore()
             return (item.commentList || [])
-                .filter(c => !state.blockedUserIds.includes(c.userId))
+                .filter(c => !state.blockedUserIds.includes(c.userId) && !privacy.isBlocked(c.userId))
                 .map(c => ({ ...c, timeLabel: formatRelativeTime(c.createdAt) }))
         }
     },
@@ -176,6 +179,19 @@ export default defineStore('square', {
                 return
             }
             this.init()
+        },
+
+        // 第 6 章闭环：广场同城口径跟随「生效城市」（改城市 24h 后自动切换）
+        syncCity(city) {
+            const target = String(city || '').trim().replace('市', '')
+            if (!target || target === this.city) return false
+            this.city = target
+            this.dynamics = this.dynamics.map(item => ({
+                ...item,
+                crossCity: item.city !== target
+            }))
+            this.persist()
+            return true
         },
 
         init() {
@@ -303,6 +319,8 @@ export default defineStore('square', {
                 const equity = useEquityStore()
                 equity.addPermanentLikes(QUALITY_REWARD_LIKES, '优质动态奖励')
                 rewarded = QUALITY_REWARD_LIKES
+                // 3.8 优质动态服务通知
+                useNotifyStore().pushQuality(item.id)
             }
             return { ok: true, rewarded }
         },
@@ -322,7 +340,8 @@ export default defineStore('square', {
         },
 
         isBlocked(userId) {
-            return this.blockedUserIds.includes(Number(userId))
+            if (this.blockedUserIds.includes(Number(userId))) return true
+            return usePrivacyStore().isBlocked(userId)
         },
 
         // ===== 安抚提示 =====

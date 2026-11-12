@@ -3,6 +3,7 @@ import { findUserById, currentUserProfile } from '@/mock/users'
 import { CURRENT_CITY } from '@/mock/dynamics'
 import { seedMyLikes, seedLikesMe, seedTodayViews } from '@/mock/social'
 import { todayStr } from '@/mock/index'
+import useNotifyStore from './notify'
 
 const STORAGE_KEY = 'social_v1'
 
@@ -246,6 +247,19 @@ export default defineStore('social', {
                 return true
             }
             return false
+        },
+
+        // 调试：模拟有同城异性对我心动（3.8 收到心动通知的真实来源）
+        simulateLikeMe(userId = 11) {
+            const id = Number(userId)
+            if (!findUserById(id)) return { ok: false, reason: 'no_user' }
+            if (this.likesMe.some(item => Number(item.userId) === id)) {
+                return { ok: false, reason: 'exists' }
+            }
+            this.likesMe.unshift({ userId: id, likedAt: Date.now(), mutual: false, stored: false })
+            this.persist()
+            useNotifyStore().pushLikeMe(id)
+            return { ok: true, userId: id }
         },
 
         resetAll() {

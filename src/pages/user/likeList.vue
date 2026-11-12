@@ -103,7 +103,7 @@
     import { useUserStore, useSocialStore, useMatchStore, useEquityStore } from '@/store/index'
     import { usePermission } from '@/composables/usePermission'
     import { formatRelativeTime } from '@/mock/dynamics'
-    import { businessCopy } from '@/mock/copy'
+    import { businessCopy, emptyCopy } from '@/mock/copy'
 
     const userStore = useUserStore()
     const socialStore = useSocialStore()
@@ -148,9 +148,10 @@
     })
 
     const emptyTitle = computed(() => (listType.value === 'send' ? '还没有喜欢的人' : '还没有人喜欢你'))
+    // 复用第 8 章空状态文案：暂无他人心动
     const emptyDesc = computed(() =>
         listType.value === 'send'
-            ? '去匹配页发现更多有趣的灵魂吧'
+            ? emptyCopy.likeEmpty
             : '完善资料提高曝光，让更多人看到你'
     )
     const emptyActionText = computed(() => (listType.value === 'send' ? '去匹配' : '完善资料'))

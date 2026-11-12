@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { findUserById, currentUserProfile } from '@/mock/users'
+import useNotifyStore from './notify'
+import usePrivacyStore from './privacy'
 import {
     seedMatches,
     seedApplications,
@@ -150,6 +152,30 @@ export default defineStore('match', {
             return changed
         },
 
+        // 3.6 隐私开关：微信申请 24 小时未处理自动拒绝（接收方保护，女性默认开启）
+        // @param {number} hours 可选，调试或后台下发；默认读隐私设置
+        autoRejectCheck(hours) {
+            const limit = Number.isFinite(hours) ? Number(hours) : usePrivacyStore().effectiveAutoRejectHours
+            if (!limit) return 0
+            const now = Date.now()
+            const span = limit * 60 * 60 * 1000
+            let changed = 0
+            this.applications.forEach(item => {
+                if (item.status !== 'pending') return
+                if (now - item.createdAt < span) return
+                item.status = 'auto_rejected'
+                item.handledAt = now
+                changed++
+                const otherId = item.direction === 'in' ? item.fromUserId : item.toUserId
+                const match = this.getMatch(otherId)
+                if (match && match.wechatStatus === 'pending') match.wechatStatus = 'none'
+                // 只有「我发出的申请被对方自动拒绝」才需要通知我
+                if (item.direction === 'out') useNotifyStore().pushAutoRejected(otherId)
+            })
+            if (changed) this.persist()
+            return changed
+        },
+
         // ---------- 匹配关系 ----------
         isMatched(userId) {
             return this.matches.some(item => Number(item.userId) === Number(userId))
@@ -163,7 +189,7 @@ export default defineStore('match', {
          * 建立双向匹配（用户心动且对方也心动）
          * 返回匹配记录，供成功动效页使用
          */
-        createMatch(userId) {
+        createMatch(userId, options = {}) {
             const id = Number(userId)
             const exist = this.getMatch(id)
             if (exist) return exist
@@ -176,6 +202,8 @@ export default defineStore('match', {
             }
             this.matches.unshift(record)
             this.persist()
+            // 3.8 匹配成功服务通知（游客不推，未实名降级为实名引导，由 notify store 判定）
+            if (options.notify !== false) useNotifyStore().pushMatchSuccess(id)
             return record
         },
 
@@ -195,6 +223,11 @@ export default defineStore('match', {
             if (!this.isMatched(id)) return { ok: false, reason: 'not_matched' }
             const exist = this.getMatch(id)
             if (exist.wechatStatus === 'agreed') return { ok: false, reason: 'agreed' }
+
+            // 3.6 隐私设置：对方关闭申请 / 仅双认证 / 年龄差拦截 / 黑名单
+            const target = findUserById(id)
+            const policy = usePrivacyStore().checkApply(target)
+            if (!policy.ok) return { ok: false, reason: policy.reason, message: policy.message }
 
             const now = Date.now()
             const record = this.applications.find(item => Number(item.toUserId) === id && item.direction === 'out')
@@ -254,7 +287,7 @@ export default defineStore('match', {
             record.handledAt = Date.now()
             const otherId = record.direction === 'in' ? record.fromUserId : record.toUserId
             let match = this.getMatch(otherId)
-            if (!match) match = this.createMatch(otherId)
+            if (!match) match = this.createMatch(otherId, { notify: false })
             match.wechatStatus = 'agreed'
             this.persist()
             return { ok: true }

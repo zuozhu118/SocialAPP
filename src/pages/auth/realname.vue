@@ -148,6 +148,7 @@
 <script setup>
     import { ref } from 'vue'
     import CustomNavbar from '@/components/common/CustomNavbar.vue'
+    import { businessCopy } from '@/mock/copy'
 
     const currentStep = ref(1)
     const steps = ['上传身份证', '人脸识别', '完成']
@@ -215,7 +216,8 @@
                 uni.showToast({ title: '认证通过！', icon: 'success' })
             } else {
                 currentStep.value = -1
-                failReason.value = '人脸与身份证照片不匹配，请确认是本人操作'
+                // 复用第 8 章「实名核验未通过」标准文案，禁止自定义指责类文字
+                failReason.value = businessCopy.realNameFailed
             }
         }, 1500)
     }

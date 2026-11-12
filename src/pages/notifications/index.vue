@@ -5,9 +5,11 @@
             <text class="notify-navbar__title">通知</text>
             <view class="notify-navbar__right">
                 <text class="notify-navbar__action" @click="markAllRead" v-if="hasUnread">全部已读</text>
-                <text class="notify-navbar__action" @click="clearAll" v-if="notifyList.length > 0">清空</text>
+                <text class="notify-navbar__action" @click="clearAll" v-if="totalCount > 0">清空</text>
             </view>
         </view>
+        <!-- 全页安全徽章（第 2 章硬性标准） -->
+        <SafetyBadge inline />
 
         <!-- 分类Tab：全部 / 互动 / 系统 -->
         <view class="notify-tabs">
@@ -21,12 +23,22 @@
             </view>
         </view>
 
+        <!-- 未实名引导：服务通知能力已就绪，完成实名才能收到匹配类通知 -->
+        <view v-if="needRealNameGuide" class="notify-guide" @click="goRealName">
+            <text class="notify-guide__icon">🔒</text>
+            <view class="notify-guide__body">
+                <text class="notify-guide__title">完成实名，不漏掉每一次心动</text>
+                <text class="notify-guide__desc">未实名时匹配类通知仅作提醒，不展示对方身份</text>
+            </view>
+            <text class="notify-guide__action">去实名</text>
+        </view>
+
         <!-- 通知列表 -->
         <scroll-view class="notify-list" scroll-y @scrolltolower="loadMore">
-            <view v-for="(item, index) in filteredList"
+            <view v-for="item in filteredList"
                   :key="item.id"
                   class="notify-item"
-                  :class="{ 'notify-item--unread': !item.isRead }"
+                  :class="{ 'notify-item--unread': !item.read }"
                   @click="handleItemClick(item)">
                 <!-- 图标 -->
                 <view class="notify-item__icon" :style="{ backgroundColor: item.bgColor || '#F5F5F5' }">
@@ -37,21 +49,18 @@
                 <view class="notify-item__content">
                     <view class="notify-item__header">
                         <text class="notify-item__title">{{ item.title }}</text>
-                        <text v-if="!item.isRead" class="notify-item__dot">●</text>
+                        <text v-if="!item.read" class="notify-item__dot">●</text>
                     </view>
                     <text class="notify-item__desc">{{ item.desc }}</text>
                     <view class="notify-item__footer">
                         <text class="notify-item__time">{{ item.time }}</text>
-                        <view v-if="item.actionText" class="notify-item__action" @click.stop="handleAction(item)">
+                        <view v-if="item.actionText" class="notify-item__action" @click.stop="handleItemClick(item)">
                             {{ item.actionText }}
                             <text class="icon icon-arrow-right"></text>
                         </view>
                     </view>
                 </view>
             </view>
-
-            <!-- 加载更多 -->
-            <view v-if="hasMore" class="notify-loading">加载中...</view>
 
             <!-- 空状态 -->
             <view v-if="filteredList.length === 0" class="notify-empty">
@@ -62,222 +71,66 @@
                 </text>
             </view>
 
+            <view v-else class="notify-loading">没有更多了</view>
+
             <view class="notify-bottom-placeholder"></view>
         </scroll-view>
     </view>
 </template>
 
 <script setup>
-    import { ref, computed, onMounted } from 'vue'
+    import { ref, computed } from 'vue'
+    import { onShow } from '@dcloudio/uni-app'
+    import useNotifyStore from '@/store/notify'
+    import useUserStore from '@/store/user'
+    import SafetyBadge from '@/components/common/SafetyBadge.vue'
 
-    // ===== 状态 =====
+    const notifyStore = useNotifyStore()
+    const userStore = useUserStore()
+
     const currentTab = ref('all')
-    const hasMore = ref(false)
-    const page = ref(1)
 
-    const tabs = ref([
-        { label: '全部', value: 'all', count: 0 },
-        { label: '互动', value: 'interact', count: 0 },
-        { label: '系统', value: 'system', count: 0 }
-    ])
+    // ===== 数据 =====
+    const tabs = computed(() => notifyStore.tabs)
+    const totalCount = computed(() => notifyStore.totalCount)
+    const hasUnread = computed(() => notifyStore.hasUnread)
+    const filteredList = computed(() => notifyStore.listOf(currentTab.value))
+    // 3.8：未实名只收到实名引导，不展示对方身份
+    const needRealNameGuide = computed(() => userStore.level === 'registered')
 
-    // ===== 通知数据 =====
-    const notifyList = ref([
-        // ===== 互动类（匹配 + 点赞 + 评论等） =====
-        {
-            id: 1,
-            type: 'interact',
-            icon: '💕',
-            bgColor: '#FFE8EC',
-            title: '匹配成功',
-            desc: '你和 林小鹿 双向喜欢，可以申请交换微信了',
-            time: '5分钟前',
-            isRead: false,
-            actionText: '去申请',
-            actionType: 'apply_wechat',
-            targetId: 1,
-            targetName: '林小鹿'
-        },
-        {
-            id: 2,
-            type: 'interact',
-            icon: '❤️',
-            bgColor: '#FFE8EC',
-            title: '有人喜欢了你',
-            desc: '陈橘子 对你表达了喜欢',
-            time: '15分钟前',
-            isRead: false,
-            actionText: '查看',
-            actionType: 'view_like_list',
-            targetId: 2
-        },
-        {
-            id: 3,
-            type: 'interact',
-            icon: '💬',
-            bgColor: '#E8F4FD',
-            title: '收到微信申请',
-            desc: '王子轩 申请交换微信，是否同意？',
-            time: '1小时前',
-            isRead: false,
-            actionText: '去处理',
-            actionType: 'handle_apply',
-            targetId: 3
-        },
-        {
-            id: 4,
-            type: 'interact',
-            icon: '✅',
-            bgColor: '#E8F5E9',
-            title: '微信申请已通过',
-            desc: '张一晨 同意了你的微信申请，微信号已互相展示',
-            time: '3小时前',
-            isRead: true,
-            actionText: '查看结果',
-            actionType: 'apply_result_agreed',
-            targetId: 4,
-            targetName: '张一晨'
-        },
-        {
-            id: 5,
-            type: 'interact',
-            icon: '👍',
-            bgColor: '#F3E5F5',
-            title: '收到点赞',
-            desc: '吴晴天 赞了你的动态',
-            time: '2小时前',
-            isRead: false,
-            actionText: '查看动态',
-            actionType: 'view_dynamic',
-            targetId: 101
-        },
-        {
-            id: 6,
-            type: 'interact',
-            icon: '💬',
-            bgColor: '#FFF3E0',
-            title: '收到评论',
-            desc: '周小白 评论了你的动态：拍得真好看！📷',
-            time: '5小时前',
-            isRead: true,
-            actionText: '回复',
-            actionType: 'reply_comment',
-            targetId: 102
-        },
-        {
-            id: 7,
-            type: 'interact',
-            icon: '❌',
-            bgColor: '#FFEBEE',
-            title: '微信申请已拒绝',
-            desc: '陈橘子 拒绝了你的微信申请',
-            time: '30分钟前',
-            isRead: false,
-            actionText: '查看结果',
-            actionType: 'apply_result_rejected',
-            targetId: 2,
-            targetName: '陈橘子'
-        },
-
-        // ===== 系统类 =====
-        {
-            id: 8,
-            type: 'system',
-            icon: '🎖️',
-            bgColor: '#E8F5E9',
-            title: '获得勋章',
-            desc: '恭喜你获得「学术钻研人」勋章，已展示在个人主页',
-            time: '昨天',
-            isRead: true,
-            actionText: '查看勋章',
-            actionType: 'view_medal',
-            targetId: 1
-        },
-        {
-            id: 9,
-            type: 'system',
-            icon: '📢',
-            bgColor: '#FFF8E1',
-            title: '反诈提醒',
-            desc: '平台提醒：请勿向任何人透露验证码、转账汇款，谨防杀猪盘诈骗',
-            time: '3天前',
-            isRead: true,
-            actionText: '查看详情',
-            actionType: 'view_antifraud',
-            targetId: null
-        },
-        {
-            id: 10,
-            type: 'system',
-            icon: '✨',
-            bgColor: '#E3F2FD',
-            title: '动态被标记为优质',
-            desc: '你发布的动态被评选为优质内容，奖励 3 次微信申请次数已到账',
-            time: '5天前',
-            isRead: true,
-            actionText: '查看动态',
-            actionType: 'view_dynamic',
-            targetId: 103
-        },
-        {
-            id: 11,
-            type: 'system',
-            icon: '✅',
-            bgColor: '#E8F5E9',
-            title: '认证通过',
-            desc: '你的学历认证已审核通过，个人主页已展示学历标识',
-            time: '6天前',
-            isRead: true,
-            actionText: '查看主页',
-            actionType: 'view_profile',
-            targetId: 0 // 自己的主页
-        }
-    ])
-
-    // ===== 计算属性 =====
-    const hasUnread = computed(() => {
-        return notifyList.value.some(item => !item.isRead)
+    // ===== 生命周期 =====
+    onShow(() => {
+        // 3.8 男 9 点 / 20 点额度提醒（女性禁止，内部已判定）
+        notifyStore.ensureQuotaReminder()
+        notifyStore.syncBadge()
     })
-
-    const filteredList = computed(() => {
-        if (currentTab.value === 'all') {
-            return notifyList.value
-        }
-        return notifyList.value.filter(item => item.type === currentTab.value)
-    })
-
-    // 计算各分类未读数量
-    const updateTabCounts = () => {
-        tabs.value.forEach(tab => {
-            if (tab.value === 'all') {
-                tab.count = notifyList.value.filter(item => !item.isRead).length
-            } else {
-                tab.count = notifyList.value.filter(item => item.type === tab.value && !item.isRead).length
-            }
-        })
-    }
 
     // ===== 方法 =====
     const switchTab = (value) => {
         currentTab.value = value
-        page.value = 1
+    }
+
+    const goRealName = () => {
+        uni.navigateTo({ url: '/pages/auth/realname' })
     }
 
     const handleItemClick = (item) => {
-        // 标记已读
-        item.isRead = true
-        updateTabCounts()
+        // 页内仅小红点，点击即视为已读
+        notifyStore.markRead(item.id)
 
-        // 根据类型跳转
         switch (item.actionType) {
             case 'view_profile':
-                uni.navigateTo({ url: `/pages/user/profile?userId=${item.targetId}` })
+                if (!item.targetId) {
+                    uni.navigateTo({ url: '/pages/profile/myProfile' })
+                } else {
+                    uni.navigateTo({ url: `/pages/user/profile?userId=${item.targetId}` })
+                }
                 break
             case 'view_dynamic':
                 uni.navigateTo({ url: `/pages/dynamic/detail?id=${item.targetId}` })
                 break
             case 'view_like_list':
-                uni.navigateTo({ url: `/pages/user/likeList?type=receive` })
+                uni.navigateTo({ url: '/pages/user/likeList?type=receive' })
                 break
             case 'apply_wechat':
                 uni.navigateTo({ url: `/pages/match/apply?userId=${item.targetId}` })
@@ -286,21 +139,31 @@
                 uni.navigateTo({ url: `/pages/match/apply?userId=${item.targetId}&type=handle` })
                 break
             case 'apply_result_agreed':
-                // 跳转到 apply 页面，直接显示已同意状态
                 uni.navigateTo({ url: `/pages/match/apply?userId=${item.targetId}&result=agreed` })
                 break
             case 'apply_result_rejected':
-                // 跳转到 apply 页面，直接显示已拒绝状态
                 uni.navigateTo({ url: `/pages/match/apply?userId=${item.targetId}&result=rejected` })
                 break
             case 'view_medal':
-                uni.navigateTo({ url: `/pages/user/medalWall` })
+                uni.navigateTo({ url: '/pages/user/medalWall' })
                 break
             case 'view_antifraud':
-                uni.navigateTo({ url: `/pages/common/antifraud` })
+                uni.navigateTo({ url: '/pages/common/antiFraud' })
                 break
             case 'reply_comment':
                 uni.navigateTo({ url: `/pages/dynamic/detail?id=${item.targetId}&focus=comment` })
+                break
+            case 'realname_guide':
+                goRealName()
+                break
+            case 'view_equity':
+                uni.navigateTo({ url: '/pages/profile/equity' })
+                break
+            case 'view_invite':
+                uni.navigateTo({ url: '/pages/invite/index' })
+                break
+            case 'view_reports':
+                uni.navigateTo({ url: '/pages/common/myReports' })
                 break
             default:
                 // 无跳转，仅标记已读
@@ -308,53 +171,41 @@
         }
     }
 
-    const handleAction = (item) => {
-        handleItemClick(item)
-    }
-
     const markAllRead = () => {
-        if (notifyList.value.length === 0) return
+        if (!hasUnread.value) return
         uni.showModal({
             title: '全部已读',
-            content: '确认将所有通知标记为已读？',
+            content: '确认将当前分类的通知全部标记为已读？',
             confirmColor: '#2ED573',
             success: (res) => {
                 if (res.confirm) {
-                    notifyList.value.forEach(item => {
-                        item.isRead = true
+                    const changed = notifyStore.markAllRead(currentTab.value)
+                    uni.showToast({
+                        title: changed ? `已标记 ${changed} 条为已读` : '暂无未读通知',
+                        icon: 'none'
                     })
-                    updateTabCounts()
-                    uni.showToast({ title: '已全部标记为已读', icon: 'success' })
                 }
             }
         })
     }
 
     const clearAll = () => {
-        if (notifyList.value.length === 0) return
+        if (!totalCount.value) return
         uni.showModal({
             title: '清空通知',
-            content: '确认清空所有通知记录？此操作不可恢复',
+            content: '确认清空当前分类的通知记录？此操作不可恢复',
             confirmColor: '#FF4757',
             success: (res) => {
                 if (res.confirm) {
-                    notifyList.value = []
-                    updateTabCounts()
-                    uni.showToast({ title: '已清空', icon: 'success' })
+                    notifyStore.clearAll(currentTab.value)
+                    uni.showToast({ title: '已清空', icon: 'none' })
                 }
             }
         })
     }
 
-    const loadMore = () => {
-        if (hasMore.value) {
-            page.value++
-        }
-    }
-
-    onMounted(() => {
-        updateTabCounts()
-    })
+    // 通知不做分页，保留手势回调避免 scroll-view 报错
+    const loadMore = () => {}
 </script>
 
 <style lang="scss" scoped>
@@ -405,6 +256,51 @@
             &:first-child {
                 color: $primary-color;
             }
+        }
+    }
+
+    // ===== 未实名引导 =====
+    .notify-guide {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 10px $page-padding-x 0;
+        padding: 10px 12px;
+        background-color: $primary-light-bg;
+        border-radius: $radius-sm;
+        border-left: 3px solid $primary-color;
+
+        &:active {
+            opacity: 0.85;
+        }
+
+        &__icon {
+            font-size: 18px;
+        }
+
+        &__body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        &__title {
+            display: block;
+            font-size: $font-size-xs;
+            font-weight: $font-weight-medium;
+            color: $text-primary;
+        }
+
+        &__desc {
+            display: block;
+            font-size: 10px;
+            color: $text-helper;
+            margin-top: 2px;
+        }
+
+        &__action {
+            font-size: $font-size-xs;
+            color: $primary-dark;
+            font-weight: $font-weight-medium;
         }
     }
 

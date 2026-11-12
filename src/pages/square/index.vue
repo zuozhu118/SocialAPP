@@ -15,6 +15,8 @@
                       @click="switchTab('like')">喜欢</text>
             </view>
         </view>
+        <!-- 全页安全徽章（第 2 章硬性标准） -->
+        <SafetyBadge inline />
 
         <!-- 动态列表 -->
         <scroll-view class="square-list"
@@ -190,15 +192,26 @@
                          @confirm="handleModalConfirm"
                          @favorite="handleModalFavorite"
                          @close="closeModal" />
+
+        <!-- 3.8 裂变分享 -->
+        <ShareSheet :visible="shareVisible"
+                    title="分享给同城好友"
+                    desc="好友通过你的链接注册并实名后，双方各得永久心动"
+                    :target="shareTarget"
+                    :target-title="shareTitle"
+                    @close="shareVisible = false" />
     </view>
 </template>
 
 <script setup>
     import { ref, computed } from 'vue'
-    import { onShow } from '@dcloudio/uni-app'
+    import { onShow, onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
     import PermissionModal from '@/components/common/PermissionModal.vue'
+    import ShareSheet from '@/components/common/ShareSheet.vue'
+    import SafetyBadge from '@/components/common/SafetyBadge.vue'
     import { useUserStore, useSquareStore, useMatchStore } from '@/store/index'
     import { usePermission } from '@/composables/usePermission'
+    import { buildSharePath, buildShareQuery } from '@/utils/share'
     import { emptyCopy, getTimeSlotTitle } from '@/mock/copy'
 
     const userStore = useUserStore()
@@ -322,6 +335,8 @@
     onShow(() => {
         timeTitle.value = getTimeSlotTitle()
         square.restore()
+        // 第 6 章闭环：城市切换 24h 生效后，广场同城口径跟随生效城市
+        square.syncCity(userStore.matchCity)
         square.touchFirstOpen()
         matchStore.restore()
     })
@@ -392,9 +407,26 @@
         uni.navigateTo({ url: `/pages/dynamic/detail?id=${item.id}&focus=comment` })
     }
 
-    const handleShare = () => {
-        uni.showToast({ title: '点击右上角分享给好友', icon: 'none' })
+    const handleShare = (item) => {
+        shareTarget.value = item ? `/pages/dynamic/detail?id=${item.id}` : ''
+        shareTitle.value = item ? `${item.userName} 的同城动态` : '同城真实交友'
+        shareVisible.value = true
     }
+
+    // ===== 3.8 分享（微信好友 / 朋友圈）=====
+    const shareVisible = ref(false)
+    const shareTarget = ref('')
+    const shareTitle = ref('')
+
+    onShareAppMessage(() => ({
+        title: shareTitle.value || '同城真实交友，遇见对的人',
+        path: buildSharePath({ target: shareTarget.value, title: shareTitle.value })
+    }))
+
+    onShareTimeline(() => ({
+        title: shareTitle.value || '同城真实交友，遇见对的人',
+        query: buildShareQuery({ target: shareTarget.value, title: shareTitle.value })
+    }))
 
     const handleReport = (item) => {
         if (isGuest.value) {

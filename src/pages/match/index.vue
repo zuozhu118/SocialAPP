@@ -8,9 +8,26 @@
             </view>
         </view>
 
+        <!-- 全页安全徽章（第 2 章硬性标准） -->
+        <SafetyBadge inline />
+
         <!-- 顶部双额度进度条（浏览 / 心动） -->
         <view class="match-quota-wrap">
             <QuotaBar />
+        </view>
+
+        <!-- 3.6 / 3.7 降权提示：风控分低于阈值时不向女性用户推送 -->
+        <view v-if="deprioritized" class="match-degraded">
+            <text class="match-degraded__icon">⚠️</text>
+            <text class="match-degraded__text">{{ risk.riskLabel }}</text>
+        </view>
+
+        <!-- 第 6 章闭环：改城市 24h 生效提示 -->
+        <view v-if="userStore.cityPending" class="match-degraded match-city-pending">
+            <text class="match-degraded__icon">📍</text>
+            <text class="match-degraded__text">
+                城市已改为 {{ userStore.cityPending.to }}，{{ userStore.cityPending.hours }} 小时后生效，当前仍按 {{ userStore.cityPending.from }} 推荐
+            </text>
         </view>
 
         <!-- 已匹配状态条：常驻，关闭匹配成功动效后可随时回顾 -->
@@ -267,11 +284,11 @@
             </view>
         </view>
 
-        <!-- 今日推荐看完 / 浏览额度耗尽 -->
+        <!-- 今日推荐看完 / 浏览额度耗尽（复用第 8 章标准文案） -->
         <view v-if="quotaExhausted || (isPoolEmpty && filteredPool.length > 0)" class="match-empty">
             <text class="match-empty__emoji">🌙</text>
             <text class="match-empty__title">今日缘分已尽</text>
-            <text class="match-empty__desc">明天将为你刷新全新的同城异性</text>
+            <text class="match-empty__desc">{{ businessCopy.browseQuotaExhausted }}</text>
             <view class="match-empty__hint">
                 <text class="match-empty__hint-label">资料完整度</text>
                 <text class="match-empty__hint-value">{{ userStore.profileCompleteness }}%</text>
@@ -286,11 +303,11 @@
             <button class="match-empty__btn match-empty__btn--ghost" @click="goToSquare">去广场逛逛</button>
         </view>
 
-        <!-- 筛选后无匹配 -->
+        <!-- 筛选后无匹配（复用第 8 章空状态文案） -->
         <view v-else-if="isPoolEmpty" class="match-empty">
             <image class="match-empty__image" src="/static/images/empty-match.png" mode="aspectFit" />
             <text class="match-empty__title">你的缘分还在路上</text>
-            <text class="match-empty__desc">放宽筛选条件，或完善资料让 TA 更快找到你</text>
+            <text class="match-empty__desc">{{ emptyCopy.matchEmpty }}</text>
             <button class="match-empty__btn" @click="showFilterPanel = true">调整筛选条件</button>
             <button class="match-empty__btn match-empty__btn--ghost" @click="goToProfileEdit">完善资料</button>
         </view>
@@ -379,21 +396,27 @@
     import { ref, computed, onMounted, watch } from 'vue'
     import CustomModal from '@/components/common/CustomModal.vue'
     import PermissionModal from '@/components/common/PermissionModal.vue'
+    import SafetyBadge from '@/components/common/SafetyBadge.vue'
     import FilterPanel from './components/FilterPanel.vue'
     import QuotaBar from '@/components/common/QuotaBar.vue'
-    import { useUserStore, useEquityStore, useMatchStore } from '@/store/index'
+    import { useUserStore, useEquityStore, useMatchStore, usePrivacyStore, useRiskStore } from '@/store/index'
     import { usePermission } from '@/composables/usePermission'
     import MatchSuccessOverlay from '@/components/match/MatchSuccessOverlay.vue'
     import { users, findUserById, currentUserProfile } from '@/mock/users'
     import { quickFilters, defaultFilters, matchUserByFilters } from '@/mock/filters'
     import { matchSuccessTags } from '@/mock/matches'
-    import { businessCopy } from '@/mock/copy'
+    import { businessCopy, emptyCopy } from '@/mock/copy'
 
     // ===== Store / 权限 =====
     const userStore = useUserStore()
     const equity = useEquityStore()
     const matchStore = useMatchStore()
+    const privacy = usePrivacyStore()
+    const risk = useRiskStore()
     const { guard, isGuest, isCertified } = usePermission()
+
+    // 3.7 反作弊：风控分低于阈值自动降权
+    const deprioritized = computed(() => risk.deprioritized)
 
     // ===== 状态 =====
     // 是否已实名（未实名时展示引导蒙版）
@@ -434,9 +457,12 @@
             // 全平台仅展示异性
             if (user.gender === selfGender) return false
 
+            // 3.7 拉黑：双向屏蔽，无通知
+            if (privacy.isBlocked(user.id)) return false
+
             if (quick === 'city') {
                 const city = (user.ipLocation || '').replace('市', '')
-                const selfCity = (userStore.profile.city || '').replace('市', '')
+                const selfCity = (userStore.matchCity || '').replace('市', '')
                 if (selfCity && !city.includes(selfCity) && !user.district.includes(selfCity)) return false
             }
             if (quick === 'education' && !['本科', '硕士', '研究生'].some(level => (user.education || '').includes(level))) {
@@ -825,6 +851,9 @@
     onMounted(() => {
         // 恢复匹配关系（3 天申请过期在这里校验）
         matchStore.restore()
+        // 3.7 拉黑 / 降权状态
+        privacy.restore()
+        risk.restore()
     })
 </script>
 
@@ -1689,6 +1718,29 @@
         padding: 0 $page-padding-x 8px;
         background-color: $bg-page;
         z-index: $z-index-sticky - 1;
+    }
+
+    // ===== 3.6 / 3.7 降权提示 =====
+    .match-degraded {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+        margin: 0 $page-padding-x 8px;
+        padding: 8px 10px;
+        background-color: #FFF8E1;
+        border-radius: $radius-sm;
+
+        &__icon {
+            font-size: 12px;
+        }
+
+        &__text {
+            flex: 1;
+            font-size: 10px;
+            line-height: 1.5;
+            color: #B58A2B;
+        }
     }
 
     // ===== M3：已匹配状态条（常驻，可回顾）=====

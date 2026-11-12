@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { currentUserProfile } from '@/mock/users'
 import useEquityStore from './equity'
+import useNotifyStore from './notify'
 
 const STORAGE_KEY = 'user_state_v2'
 
@@ -67,7 +68,9 @@ export default defineStore('user', {
         certRewarded: {
             education: false,
             work: false
-        }
+        },
+        // 第 6 章闭环：改城市 24h 生效（from 旧城市 / to 新城市 / at 申请时间戳）
+        cityChange: { from: '', to: '', at: 0 }
     }),
 
     getters: {
@@ -111,6 +114,28 @@ export default defineStore('user', {
             return state.userInfo.nickname || state.userInfo.name || '用户'
         },
         gender: (state) => state.profile.gender || 'male',
+        // ===== 第 6 章闭环：仅手动填写常住城市，不取实时 GPS；改城市 24h 生效 =====
+        // 同城匹配 / 推荐一律使用「生效城市」：切换未满 24 小时仍按旧城市计算
+        matchCity: (state) => {
+            const change = state.cityChange
+            const pending = change && change.at &&
+                (Date.now() - change.at) < 24 * 60 * 60 * 1000
+            if (pending && change.from) return change.from
+            return state.profile.city || ''
+        },
+        // 城市切换剩余生效小时数（0 = 已生效 / 无切换）
+        cityChangeRemainHours() {
+            const change = this.cityChange
+            if (!change || !change.at) return 0
+            const remain = change.at + 24 * 60 * 60 * 1000 - Date.now()
+            return remain > 0 ? Math.ceil(remain / (60 * 60 * 1000)) : 0
+        },
+        // 是否存在待生效的城市切换
+        cityPending() {
+            const change = this.cityChange
+            if (!change || !change.at || !this.cityChangeRemainHours) return null
+            return { from: change.from, to: change.to, hours: this.cityChangeRemainHours }
+        },
         // 资料完整度（0-100）
         profileCompleteness: (state) => {
             const p = state.profile
@@ -145,6 +170,7 @@ export default defineStore('user', {
             this.profile = { ...this.profile, ...(cache.profile || {}) }
             this.favorites = cache.favorites || []
             this.certRewarded = { education: false, work: false, ...(cache.certRewarded || {}) }
+            this.cityChange = cache.cityChange || { from: '', to: '', at: 0 }
         },
 
         persist() {
@@ -155,7 +181,8 @@ export default defineStore('user', {
                 verifications: this.verifications,
                 profile: this.profile,
                 favorites: this.favorites,
-                certRewarded: this.certRewarded
+                certRewarded: this.certRewarded,
+                cityChange: this.cityChange
             })
         },
 
@@ -204,6 +231,32 @@ export default defineStore('user', {
             this.persist()
         },
 
+        // ===== 第 6 章闭环：改城市 24h 生效 =====
+        /**
+         * 手动修改常住城市（不取实时 GPS）。新城市 24 小时后才参与同城匹配/推荐。
+         * @param {string} to 目标城市（可带「市」后缀）
+         * @param {number} nowTs 调试可传自定义时间戳
+         * @returns {{ ok: boolean, changed?: boolean, from?: string, to?: string }}
+         */
+        changeCity(to, nowTs = Date.now()) {
+            const target = String(to || '').trim().replace('市', '')
+            if (!target) return { ok: false, reason: 'empty' }
+            const current = String(this.matchCity || '').replace('市', '')
+            if (target === current) return { ok: true, changed: false }
+            this.cityChange = { from: current, to: target, at: nowTs }
+            this.profile.city = target
+            this.persist()
+            return { ok: true, changed: true, from: current, to: target }
+        },
+
+        // 调试：把切换时间拨快 24 小时，模拟「已到生效时间」
+        advanceCityChange(nowTs = Date.now()) {
+            if (!this.cityChange.at) return false
+            this.cityChange = { ...this.cityChange, at: nowTs - 24 * 60 * 60 * 1000 - 1 }
+            this.persist()
+            return true
+        },
+
         // ===== 3.2 资质认证（学历 / 工作，人工审核 mock） =====
         // 提交认证：仅实名用户可发起，凭证必填
         submitCertification(type, payload = {}) {
@@ -244,6 +297,8 @@ export default defineStore('user', {
                 rewarded = CERT_REWARD_LIKES
             }
             this.persist()
+            // 3.8 认证通过服务通知
+            useNotifyStore().pushCertPass(type)
             return { ok: true, rewarded }
         },
 
@@ -342,6 +397,7 @@ export default defineStore('user', {
             }
             this.favorites = []
             this.certRewarded = { education: false, work: false }
+            this.cityChange = { from: '', to: '', at: 0 }
             this.persist()
         }
     }
