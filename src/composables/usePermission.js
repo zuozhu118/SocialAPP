@@ -23,11 +23,13 @@ export const ACTION_RULES = {
     commentDynamic: { guest: 'register', registered: 'realname' },
     // 发布动态：仅实名
     publishDynamic: { guest: 'register', registered: 'realname' },
-    // 心动（喜欢）：未实名只能收藏
+    // 心动：稀缺资源，必须已实名（未实名只能先关注）
     likeUser: { guest: 'register', registered: 'realname' },
-    // 申请交换微信：仅实名且双向心动
+    // 申请交换微信：仅实名，且必须是双向心动
     applyWechat: { guest: 'register', registered: 'realname' },
-    // 收藏心动：登录即可
+    // 关注：弱关系收藏夹，登录即可，不占额度、不限次数
+    followUser: { guest: 'register' },
+    // 兼容旧调用名（等价于 followUser）
     favoriteUser: { guest: 'register' },
     // 查看他人主页完整资料
     viewProfile: { guest: 'register' }

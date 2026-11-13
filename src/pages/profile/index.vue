@@ -118,25 +118,30 @@
         </view>
 
         <!-- ========================================== -->
-        <!-- 3. 核心数据统计卡（我喜欢的 / 喜欢我的 / 今日关注） -->
+        <!-- 3. 核心数据统计卡（我的关注 / 我的心动 / 心动我的 / 今日来访） -->
         <!-- ========================================== -->
         <view class="stats-card">
+            <view class="stats-card__item" @click="checkAuthAndExecute(goToFavoriteList)">
+                <text class="stats-card__num">{{ isLogin ? userStore.followCount : '-' }}</text>
+                <text class="stats-card__label">{{ actionLabels.myFollows }}</text>
+            </view>
+            <view class="stats-card__divider"></view>
             <view class="stats-card__item" @click="checkAuthAndExecute(() => goToLikeList('send'))">
-                <text class="stats-card__num">{{ isLogin ? socialStore.myLikeCount : '-' }}</text>
-                <text class="stats-card__label">我喜欢的</text>
+                <text class="stats-card__num">{{ isLogin ? socialStore.myHeartCount : '-' }}</text>
+                <text class="stats-card__label">{{ actionLabels.myHearts }}</text>
             </view>
             <view class="stats-card__divider"></view>
             <view class="stats-card__item" @click="checkAuthAndExecute(() => goToLikeList('receive'))">
                 <text class="stats-card__num">
-                    {{ isLogin ? socialStore.likesMeCount : '-' }}
-                    <text v-if="isLogin && socialStore.unmetLikeCount > 0" class="stats-card__dot"></text>
+                    {{ isLogin ? socialStore.heartsMeCount : '-' }}
+                    <text v-if="isLogin && socialStore.unmetHeartCount > 0" class="stats-card__dot"></text>
                 </text>
-                <text class="stats-card__label">喜欢我的</text>
+                <text class="stats-card__label">{{ actionLabels.heartsMe }}</text>
             </view>
             <view class="stats-card__divider"></view>
             <view class="stats-card__item" @click="handleFootprintTap">
                 <text class="stats-card__num">{{ isLogin ? socialStore.todayFootprintCount : '-' }}</text>
-                <text class="stats-card__label">今日关注</text>
+                <text class="stats-card__label">今日来访</text>
             </view>
         </view>
 
@@ -160,7 +165,7 @@
         </view>
 
         <!-- ========================================== -->
-        <!-- 5. 关系入口（我的申请 / 我的收藏） -->
+        <!-- 5. 关系入口（我的申请 / 我的关注 / 关注我的） -->
         <!-- ========================================== -->
         <view class="entry-card">
             <view class="entry-card__item" @click="checkAuthAndExecute(goToMyApply)">
@@ -176,12 +181,23 @@
             </view>
 
             <view class="entry-card__item" @click="checkAuthAndExecute(goToFavoriteList)">
-                <view class="entry-card__icon entry-card__icon--pink">
-                    <text class="icon icon-heart-filled"></text>
+                <view class="entry-card__icon entry-card__icon--star">
+                    <text class="icon icon-follow-filled"></text>
                 </view>
                 <view class="entry-card__info">
-                    <text class="entry-card__title">我的收藏</text>
-                    <text class="entry-card__sub">{{ favoriteSubText }}</text>
+                    <text class="entry-card__title">{{ actionLabels.myFollows }}</text>
+                    <text class="entry-card__sub">{{ followSubText }}</text>
+                </view>
+                <text class="entry-card__arrow icon icon-arrow-right"></text>
+            </view>
+
+            <view class="entry-card__item" @click="checkAuthAndExecute(() => goToLikeList('follower'))">
+                <view class="entry-card__icon entry-card__icon--pink">
+                    <text class="icon icon-user"></text>
+                </view>
+                <view class="entry-card__info">
+                    <text class="entry-card__title">{{ actionLabels.followers }}</text>
+                    <text class="entry-card__sub">{{ followerSubText }}</text>
                 </view>
                 <text class="entry-card__arrow icon icon-arrow-right"></text>
             </view>
@@ -292,6 +308,7 @@ import SafetyBadge from '@/components/common/SafetyBadge.vue'
 import { useUserStore, useEquityStore, useMatchStore, useSocialStore, useRiskStore } from '@/store/index'
 import { COMPLETENESS_THRESHOLD, COMPLETENESS_BONUS } from '@/store/equity'
 import { INVITE_REWARD_LIKES } from '@/mock/invite'
+import { actionLabels } from '@/mock/copy'
 
 const inviteRewardLikes = INVITE_REWARD_LIKES
 
@@ -377,10 +394,16 @@ const applySubText = computed(() => {
     return '查看交换微信申请进度'
 })
 
-const favoriteSubText = computed(() => {
-    if (!isLogin.value) return '登录后可收藏心动'
-    const count = userStore.favorites.length
-    return count > 0 ? `已收藏 ${count} 位心动对象` : '注册未实名时，可先收藏心动'
+const followSubText = computed(() => {
+    if (!isLogin.value) return '登录后可关注合眼缘的 TA'
+    const count = userStore.followCount
+    return count > 0 ? `已关注 ${count} 位 TA，心动不占额度` : '关注是免费收藏夹，先存起来慢慢看'
+})
+
+const followerSubText = computed(() => {
+    if (!isLogin.value) return '登录后查看谁关注了你'
+    const count = socialStore.followerCount
+    return count > 0 ? `${count} 位同城 TA 关注了你` : '完善资料，让更多同城 TA 找到你'
 })
 
 // ===== 5. 鉴权统一拦截器 =====
@@ -1091,6 +1114,11 @@ onShow(() => {
 
             &--blue {
                 background: linear-gradient(135deg, #4FACFE, #0099FF);
+            }
+
+            // 关注：主色绿渐变（与心动的暖粉形成视觉分工）
+            &--star {
+                background: linear-gradient(135deg, #A8B89A, #8A9B7A);
             }
         }
 

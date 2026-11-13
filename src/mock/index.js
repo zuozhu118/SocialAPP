@@ -12,7 +12,7 @@ export {
     CURRENT_CITY,
     SAME_CITY_MIN
 } from './dynamics'
-export { businessCopy, emptyCopy, getTimeSlotTitle, matchSuccessTexts, wechatSafetyCopy, antiFraudTips } from './copy'
+export { businessCopy, emptyCopy, getTimeSlotTitle, matchSuccessTexts, wechatSafetyCopy, antiFraudTips, actionLabels, footprintCopy } from './copy'
 export { filterGroups, defaultFilters, quickFilters, matchUserByFilters } from './filters'
 export {
     commonTags,
@@ -23,7 +23,7 @@ export {
     mockWechatMap,
     myMockWechat
 } from './matches'
-export { seedMyLikes, seedLikesMe, seedTodayViews, footprintEmptyText } from './social'
+export { seedMyHearts, seedHeartsMe, seedFollowers, seedTodayViews, footprintEmptyText } from './social'
 
 /**
  * 模拟网络延迟，方便验证骨架屏 / loading 态

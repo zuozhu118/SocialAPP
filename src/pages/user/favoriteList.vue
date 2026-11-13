@@ -3,30 +3,30 @@
         <!-- 顶部导航 -->
         <view class="fav-navbar">
             <text class="fav-navbar__back icon icon-arrow-left" @click="goBack"></text>
-            <text class="fav-navbar__title">我的收藏</text>
+            <text class="fav-navbar__title">{{ actionLabels.myFollows }}</text>
             <view class="fav-navbar__placeholder"></view>
         </view>
 
-        <!-- 未实名提示条（3.1 收藏心动机制） -->
+        <!-- 未实名提示条：关注不占额度，实名后可向关注的 TA 发送心动 -->
         <view v-if="isLogin && !isCertified" class="fav-banner" @click="goToRealname">
             <text class="fav-banner__icon icon icon-info"></text>
-            <text class="fav-banner__text">完成实名认证后，收藏的心动可一键发送</text>
+            <text class="fav-banner__text">完成实名认证后，即可向关注的 TA 发送心动</text>
             <text class="fav-banner__link">去实名 ›</text>
         </view>
 
         <!-- 未登录 -->
         <view v-if="!isLogin" class="fav-empty">
-            <text class="fav-empty__icon icon icon-heart"></text>
-            <text class="fav-empty__title">登录后查看收藏</text>
-            <text class="fav-empty__desc">注册未实名时，可先收藏心动，实名后一键发送</text>
+            <text class="fav-empty__icon icon icon-follow"></text>
+            <text class="fav-empty__title">登录后查看关注的 TA</text>
+            <text class="fav-empty__desc">{{ businessCopy.followGuide }}</text>
             <button class="fav-empty__btn" @click="handleLoginGuide">去登录</button>
         </view>
 
         <!-- 空状态 -->
         <view v-else-if="list.length === 0" class="fav-empty">
-            <text class="fav-empty__icon icon icon-heart-filled"></text>
-            <text class="fav-empty__title">还没有收藏的心动</text>
-            <text class="fav-empty__desc">在匹配页遇到合眼缘的 TA，可以先收藏起来</text>
+            <text class="fav-empty__icon icon icon-follow"></text>
+            <text class="fav-empty__title">还没有关注的人</text>
+            <text class="fav-empty__desc">{{ emptyCopy.followEmpty }}</text>
             <button class="fav-empty__btn" @click="goToMatch">去匹配</button>
         </view>
 
@@ -40,18 +40,30 @@
                         <view class="fav-item__name-row">
                             <text class="fav-item__name">{{ item.name }}</text>
                             <text class="fav-item__age">{{ item.age }}岁</text>
+                            <!-- 已向 TA 发送过心动 -->
+                            <text v-if="socialStore.hasHeart(item.id)" class="fav-item__hearted">
+                                {{ actionLabels.heart }}过
+                            </text>
                         </view>
                         <text class="fav-item__meta">{{ item.occupation }} · {{ item.district }}</text>
-                        <text class="fav-item__time">收藏于 {{ formatRelativeTime(item.time) }}</text>
+                        <text class="fav-item__time">{{ actionLabels.follow }}于 {{ formatRelativeTime(item.time) }}</text>
                     </view>
 
                     <view class="fav-item__right">
-                        <view class="fav-item__btn"
+                        <!-- 未心动：发送心动（已实名）／去实名（未实名） -->
+                        <view v-if="!socialStore.hasHeart(item.id)"
+                              class="fav-item__btn"
                               :class="{ 'is-ghost': !isCertified }"
                               @click.stop="handleSendLike(item)">
                             {{ isCertified ? '发送心动' : '去实名' }}
                         </view>
-                        <text class="fav-item__remove" @click.stop="handleRemove(item)">移除</text>
+                        <!-- 已心动：弱化终态 -->
+                        <view v-else class="fav-item__btn fav-item__btn--done">
+                            已心动
+                        </view>
+                        <text class="fav-item__remove" @click.stop="handleUnfollow(item)">
+                            {{ actionLabels.unfollow }}
+                        </text>
                     </view>
                 </view>
             </view>
@@ -59,7 +71,7 @@
             <view class="fav-bottom-placeholder"></view>
         </scroll-view>
 
-        <!-- 未实名：双选项弹窗 -->
+        <!-- 权限弹窗（注册 / 实名） -->
         <PermissionModal :visible="modal.visible"
                          :mode="modal.mode"
                          :title="modal.title"
@@ -75,19 +87,21 @@
     import { ref, computed } from 'vue'
     import { onShow } from '@dcloudio/uni-app'
     import PermissionModal from '@/components/common/PermissionModal.vue'
-    import { useUserStore, useEquityStore, useSocialStore } from '@/store/index'
+    import { useUserStore, useEquityStore, useMatchStore, useSocialStore } from '@/store/index'
     import { usePermission } from '@/composables/usePermission'
     import { formatRelativeTime } from '@/mock/dynamics'
-    import { businessCopy } from '@/mock/copy'
+    import { businessCopy, emptyCopy, actionLabels } from '@/mock/copy'
 
     const userStore = useUserStore()
     const equity = useEquityStore()
+    const matchStore = useMatchStore()
     const socialStore = useSocialStore()
     const { guard } = usePermission()
 
     const isLogin = computed(() => userStore.isLogin)
     const isCertified = computed(() => userStore.isCertified)
-    const list = computed(() => userStore.favorites || [])
+    // 我的关注（v8：follows = 0 成本收藏夹，与心动是两套数据）
+    const list = computed(() => userStore.follows || [])
 
     const modal = ref({ visible: false, mode: 'realname', title: '', content: '', confirmText: '' })
     const closeModal = () => {
@@ -98,14 +112,14 @@
         uni.navigateTo({ url: '/pages/auth/realname' })
     }
 
-    // 发送心动（已实名）／引导实名（未实名）
+    // 发送心动（已实名）／引导实名（未实名）；关注本身不再消耗额度
     const handleSendLike = (item) => {
         const { allowed, modal: payload } = guard('likeUser')
         if (!allowed) {
             modal.value = payload.mode === 'realname'
                 ? {
                     visible: true,
-                    mode: 'favorite',
+                    mode: 'realname',
                     title: '实名后即可发送心动',
                     content: businessCopy.realNameGuide,
                     confirmText: '去实名认证'
@@ -116,22 +130,30 @@
 
         const result = equity.consumeLike()
         if (!result.ok) {
-            uni.showToast({ title: businessCopy.likeQuotaExhausted, icon: 'none' })
+            uni.showToast({ title: businessCopy.heartExhaustedGuide, icon: 'none' })
             return
         }
-        socialStore.addLike(item.id)
-        uni.showToast({ title: '心动已送达', icon: 'none' })
+        socialStore.addHeart(item.id)
+        // 对方也心动 -> 建立双向匹配（mock 模拟）
+        if (Math.random() < 0.3) {
+            socialStore.setMutual(item.id)
+            matchStore.createMatch(item.id)
+            uni.showToast({ title: '你们互相心动了，可以交换微信了', icon: 'none' })
+            return
+        }
+        uni.showToast({ title: businessCopy.heartSent, icon: 'none' })
     }
 
-    const handleRemove = (item) => {
+    // 取消关注（随时可取消，还能再次关注）
+    const handleUnfollow = (item) => {
         uni.showModal({
-            title: '移除收藏',
-            content: `确认把「${item.name}」从收藏中移除吗？`,
+            title: actionLabels.unfollow,
+            content: `确认取消关注「${item.name}」吗？取消后还能再次关注。`,
             confirmColor: '#8AA07B',
             success: (res) => {
                 if (!res.confirm) return
-                userStore.removeFavorite(item.id)
-                uni.showToast({ title: '已移除', icon: 'none' })
+                userStore.unfollow(item.id)
+                uni.showToast({ title: businessCopy.unfollowSuccess, icon: 'none' })
             }
         })
     }
@@ -331,6 +353,15 @@
         color: $text-secondary;
     }
 
+    .fav-item__hearted {
+        font-size: 10px;
+        color: #E8446C;
+        background-color: rgba(232, 68, 108, 0.08);
+        border-radius: 8px;
+        padding: 1px 6px;
+        flex-shrink: 0;
+    }
+
     .fav-item__meta {
         display: block;
         font-size: 11px;
@@ -368,6 +399,12 @@
         &.is-ghost {
             color: $primary-dark;
             background-color: $primary-light-bg;
+        }
+
+        // 已心动：终态弱化
+        &--done {
+            color: $text-helper;
+            background-color: $bg-page;
         }
     }
 

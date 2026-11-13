@@ -1,5 +1,8 @@
 // ============================================================
-// 图标系统 - 使用 Unicode 字符 + CSS 样式
+// 图标系统 v2 —— 全部去 emoji 化
+// 两类实现：
+//   1) 纯文本符号（→ ✓ ✕ › ‹ ⋯ ↗ ✎ ⚑ ★ ☆ ♥），单色、跟随 currentColor
+//   2) SVG 蒙版图标（currentColor 着色，尺寸随 font-size 的 1em）
 // ============================================================
 
 // 图标基础类
@@ -15,59 +18,7 @@
     -moz-osx-font-smoothing: grayscale;
 }
 
-// 图标映射 - 使用 Unicode 字符
-.icon-home::before {
-    content: '🏠';
-}
-
-.icon-search::before {
-    content: '🔍';
-}
-
-.icon-user::before {
-    content: '👤';
-}
-
-.icon-heart::before {
-    content: '🤍';
-}
-
-.icon-heart-filled::before {
-    content: '❤️';
-}
-
-.icon-star::before {
-    content: '⭐';
-}
-
-.icon-share::before {
-    content: '↗';
-}
-
-.icon-comment::before {
-    content: '💬';
-}
-
-.icon-like::before {
-    content: '👍';
-}
-
-.icon-settings::before {
-    content: '⚙️';
-}
-
-.icon-shield::before {
-    content: '🛡️';
-}
-
-.icon-flag::before {
-    content: '🚩';
-}
-
-.icon-close::before {
-    content: '✕';
-}
-
+// ---------- 一、文本符号图标 ----------
 .icon-arrow-left::before {
     content: '‹';
 }
@@ -80,73 +31,83 @@
     content: '✓';
 }
 
-.icon-camera::before {
-    content: '📷';
+.icon-close::before {
+    content: '✕';
 }
 
-.icon-location::before {
-    content: '📍';
-}
-
-.icon-lock::before {
-    content: '🔒';
-}
-
-.icon-unlock::before {
-    content: '🔓';
-}
-
-.icon-notification::before {
-    content: '🔔';
-}
-
-.icon-more::before {
-    content: '⋯';
-}
-
-.icon-filter::before {
-    content: '⚙';
+.icon-share::before {
+    content: '↗';
 }
 
 .icon-edit::before {
     content: '✎';
 }
 
-.icon-delete::before {
-    content: '🗑';
+.icon-more::before {
+    content: '⋯';
 }
 
-.icon-wechat::before {
-    content: '💬';
+.icon-flag::before {
+    content: '⚑';
 }
 
-.icon-phone::before {
-    content: '📱';
+// 心动：心形（FE0E 强制文本渲染，避免部分平台渲染成彩色 emoji）
+.icon-heart::before {
+    content: '\2665\FE0E';
 }
 
-.icon-email::before {
-    content: '✉️';
+.icon-heart-filled::before {
+    content: '\2665\FE0E';
 }
 
-.icon-graduation::before {
-    content: '🎓';
+.icon-star::before {
+    content: '\2605\FE0E';
 }
 
-.icon-briefcase::before {
-    content: '💼';
+// 关注：无额度、可无限次的「收藏式」弱关系，用五角星与心形做视觉区分
+.icon-follow::before {
+    content: '☆';
 }
 
-.icon-id-card::before {
-    content: '🪪';
+.icon-follow-filled::before {
+    content: '★';
 }
 
-.icon-info::before {
-    content: 'ℹ️';
+// ---------- 二、SVG 蒙版图标 ----------
+@mixin svg-icon($name, $path) {
+    .icon-#{$name}::before {
+        content: '';
+        display: block;
+        width: 1em;
+        height: 1em;
+        background-color: currentColor;
+        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='#{$path}'/%3E%3C/svg%3E") center / contain no-repeat;
+        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='#{$path}'/%3E%3C/svg%3E") center / contain no-repeat;
+    }
 }
 
-.icon-gift::before {
-    content: '🎁';
-}
+@include svg-icon(home, 'M12 3 2 12h3v8h6v-6h2v6h6v-8h3L12 3Z');
+@include svg-icon(search, 'M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5-5-5Zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z');
+@include svg-icon(user, 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4.4 0-8 2.2-8 5v3h16v-3c0-2.8-3.6-5-8-5Z');
+@include svg-icon(comment, 'M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z');
+@include svg-icon(wechat, 'M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z');
+@include svg-icon(like, 'M2 20h4V9H2v11ZM22 10.2c0-1-.8-1.8-1.8-1.8h-5l.8-4a1.4 1.4 0 0 0-1.4-1.6L14 3l-5.6 6.3c-.3.3-.4.7-.4 1.1v8.2c0 .9.7 1.6 1.6 1.6h7.7c.7 0 1.3-.5 1.5-1.2l1.9-6.4c.2-.2.3-.5.3-.8v-1.6Z');
+@include svg-icon(settings, 'M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58ZM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2Z');
+@include svg-icon(filter, 'M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58ZM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2Z');
+@include svg-icon(shield, 'M12 2 4 5v6c0 5.1 3.4 9.8 8 11 4.6-1.2 8-5.9 8-11V5l-8-3Z');
+@include svg-icon(camera, 'M20 5h-3.2L15 3H9L7.2 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm-8 12a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Zm0-7a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z');
+@include svg-icon(location, 'M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7Zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z');
+@include svg-icon(lock, 'M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 8V7a3 3 0 1 1 6 0v3H9Z');
+@include svg-icon(unlock, 'M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-7V7a3 3 0 1 1 6 0h2a5 5 0 0 0-5-5Z');
+@include svg-icon(notification, 'M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2Zm6-6v-5c0-3.1-1.6-5.6-4.5-6.3V4a1.5 1.5 0 0 0-3 0v.7C7.6 5.4 6 7.9 6 11v5l-2 2v1h16v-1l-2-2Z');
+@include svg-icon(delete, 'M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z');
+@include svg-icon(phone, 'M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1l-2.3 2.2Z');
+@include svg-icon(email, 'M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 4-8 5-8-5V6l8 5 8-5v2Z');
+@include svg-icon(graduation, 'M12 3 1 9l11 6 9-4.9V17h2V9L12 3ZM5 13.2V17c0 1.7 3.1 3 7 3s7-1.3 7-3v-3.8l-7 3.8-7-3.8Z');
+@include svg-icon(briefcase, 'M10 2h4a2 2 0 0 1 2 2v2h3a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3V4a2 2 0 0 1 2-2Zm0 4h4V4h-4v2Z');
+@include svg-icon(id-card, 'M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm4 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm-3 7c.6-1.4 1.7-2 3-2s2.4.6 3 2H5Zm7 0h6v-1.5h-6V16Zm0-3h6v-1.5h-6V13Z');
+@include svg-icon(info, 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 15h-2v-6h2v6Zm0-8h-2V7h2v2Z');
+@include svg-icon(gift, 'M20 7h-2.2c.1-.3.2-.7.2-1a3 3 0 0 0-5.3-1.9L12 5.2 11.3 4A3 3 0 0 0 6 6c0 .3.1.7.2 1H4a1 1 0 0 0-1 1v3h8V8h2v3h8V8a1 1 0 0 0-1-1ZM4 13v7a2 2 0 0 0 2 2h5v-9H4Zm9 9h5a2 2 0 0 0 2-2v-7h-7v9Z');
 
 // ----- 图标尺寸工具类 -----
 .icon-xs {

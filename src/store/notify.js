@@ -169,16 +169,16 @@ export default defineStore('notify', {
             if (user.level === 'registered') {
                 return this.push({
                     kind: 'realname_guide',
-                    title: '有人喜欢了你',
-                    desc: '完成实名认证后即可查看是谁对你心动，并回应这份喜欢',
+                    title: '有人对你心动了',
+                    desc: '完成实名认证后即可查看是谁对你心动，并回应这份心意',
                     actionText: '去实名',
                     actionType: 'realname_guide'
                 })
             }
             return this.push({
                 kind: 'like_me',
-                title: '有人喜欢了你',
-                desc: `${name} 对你表达了喜欢`,
+                title: '有人对你心动了',
+                desc: `${name} 对你心动了，回应即可开启双向缘分`,
                 actionText: '查看',
                 actionType: 'view_like_list',
                 targetId: Number(userId),
@@ -206,7 +206,7 @@ export default defineStore('notify', {
             return this.push({
                 kind: 'match_success',
                 title: '匹配成功',
-                desc: `你和 ${name} 双向喜欢，现在可以申请交换微信了`,
+                desc: `你和 ${name} 双向心动，现在可以申请交换微信了`,
                 actionText: '去申请',
                 actionType: 'apply_wechat',
                 targetId: Number(userId),

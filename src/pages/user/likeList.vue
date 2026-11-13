@@ -58,23 +58,32 @@
                     </view>
 
                     <view class="like-item__right">
-                        <text class="like-item__time">{{ formatRelativeTime(user.likedAt) }}</text>
+                        <text class="like-item__time">{{ formatRelativeTime(timeOf(user)) }}</text>
 
-                        <!-- 喜欢我的：可回心动；已双向匹配则显示已匹配 -->
+                        <!-- 心动我的：可回心动；已双向心动可去交换微信 -->
                         <template v-if="listType === 'receive'">
                             <view class="like-item__btn"
                                   :class="{ 'is-done': user.mutual }"
-                                  @click.stop="handleLikeBack(user)">
-                                {{ user.mutual ? '已匹配' : '喜欢 TA' }}
+                                  @click.stop="handleHeartBack(user)">
+                                {{ user.mutual ? '交换微信' : '回心动' }}
                             </view>
                             <text v-if="user.stored" class="like-item__stored">暂存心动</text>
                         </template>
 
-                        <!-- 我喜欢的：只展示状态 -->
-                        <template v-else>
-                            <text class="like-item__state" :class="{ 'is-matched': user.mutual }">
-                                {{ user.mutual ? '已匹配' : '待回应' }}
+                        <!-- 我发出的心动：只展示状态 -->
+                        <template v-else-if="listType === 'send'">
+                            <text class="like-item__state" :class="{ 'is-mutual': user.mutual }">
+                                {{ user.mutual ? '双向心动' : '待回应' }}
                             </text>
+                        </template>
+
+                        <!-- 关注我的：可回关注（0 成本弱关系） -->
+                        <template v-else>
+                            <view class="like-item__btn"
+                                  :class="{ 'is-done': userStore.isFollowing(user.id) }"
+                                  @click.stop="handleFollowBack(user)">
+                                {{ userStore.isFollowing(user.id) ? actionLabels.followed : actionLabels.follow }}
+                            </view>
                         </template>
                     </view>
                 </view>
@@ -83,7 +92,7 @@
             <view class="like-bottom-placeholder"></view>
         </scroll-view>
 
-        <!-- 未实名：双选项弹窗（先收藏心动 / 去实名认证） -->
+        <!-- 权限弹窗（注册 / 实名 / 先关注 TA） -->
         <PermissionModal :visible="modal.visible"
                          :mode="modal.mode"
                          :title="modal.title"
@@ -103,7 +112,7 @@
     import { useUserStore, useSocialStore, useMatchStore, useEquityStore } from '@/store/index'
     import { usePermission } from '@/composables/usePermission'
     import { formatRelativeTime } from '@/mock/dynamics'
-    import { businessCopy, emptyCopy } from '@/mock/copy'
+    import { businessCopy, emptyCopy, actionLabels } from '@/mock/copy'
 
     const userStore = useUserStore()
     const socialStore = useSocialStore()
@@ -111,11 +120,12 @@
     const equity = useEquityStore()
     const { guard } = usePermission()
 
-    // send: 我喜欢的 / receive: 喜欢我的
+    // send: 我的心动 / receive: 心动我的 / follower: 关注我的
     const listType = ref('send')
 
     onLoad((options = {}) => {
-        listType.value = options.type === 'receive' ? 'receive' : 'send'
+        const type = options.type
+        listType.value = ['send', 'receive', 'follower'].includes(type) ? type : 'send'
         if (!socialStore.seeded) socialStore.restore()
         if (!matchStore.seeded) matchStore.restore()
     })
@@ -126,38 +136,54 @@
     })
 
     const isLogin = computed(() => userStore.isLogin)
-    const pageTitle = computed(() => (listType.value === 'send' ? '我喜欢的' : '喜欢我的'))
+    const pageTitle = computed(() => {
+        if (listType.value === 'receive') return actionLabels.heartsMe
+        if (listType.value === 'follower') return actionLabels.followers
+        return actionLabels.myHearts
+    })
 
-    const list = computed(() =>
-        listType.value === 'send' ? socialStore.myLikeList : socialStore.likesMeList
-    )
+    const list = computed(() => {
+        if (listType.value === 'receive') return socialStore.heartsMeList
+        if (listType.value === 'follower') return socialStore.followerList
+        return socialStore.myHeartsList
+    })
+
+    // 时间口径：心动关系用 heartAt，关注关系用 followAt
+    const timeOf = (user) => user.heartAt || user.followAt || 0
 
     const tipText = computed(() => {
         if (!isLogin.value) return '登录后可查看心动关系'
         if (listType.value === 'send') {
-            const total = socialStore.myLikeCount
+            const total = socialStore.myHeartCount
             const mutual = socialStore.mutualCount
             return mutual > 0
-                ? `已心动 ${total} 位 · 其中 ${mutual} 位已双向匹配`
+                ? `已心动 ${total} 位 · 其中 ${mutual} 位双向心动，可交换微信`
                 : `已心动 ${total} 位，等待 TA 的回应`
         }
-        const unmet = socialStore.unmetLikeCount
-        return unmet > 0
-            ? `共 ${socialStore.likesMeCount} 位喜欢你 · ${unmet} 位还没回应`
-            : `共 ${socialStore.likesMeCount} 位喜欢你，全部已处理`
+        if (listType.value === 'receive') {
+            const unmet = socialStore.unmetHeartCount
+            return unmet > 0
+                ? `共 ${socialStore.heartsMeCount} 位对你心动 · ${unmet} 位还没回应`
+                : `共 ${socialStore.heartsMeCount} 位对你心动，全部已回应`
+        }
+        return `共 ${socialStore.followerCount} 位同城 TA 关注了你`
     })
 
-    const emptyTitle = computed(() => (listType.value === 'send' ? '还没有喜欢的人' : '还没有人喜欢你'))
-    // 复用第 8 章空状态文案：暂无他人心动
-    const emptyDesc = computed(() =>
-        listType.value === 'send'
-            ? emptyCopy.likeEmpty
-            : '完善资料提高曝光，让更多人看到你'
-    )
-    const emptyActionText = computed(() => (listType.value === 'send' ? '去匹配' : '完善资料'))
+    const emptyTitle = computed(() => {
+        if (listType.value === 'receive') return '还没有收到心动'
+        if (listType.value === 'follower') return '还没有人关注你'
+        return '还没有发出心动'
+    })
+    // 复用第 8 章空状态文案
+    const emptyDesc = computed(() => {
+        if (listType.value === 'receive') return emptyCopy.heartsMeEmpty
+        if (listType.value === 'follower') return emptyCopy.followerEmpty
+        return emptyCopy.heartEmpty
+    })
+    const emptyActionText = computed(() => (listType.value === 'receive' ? '完善资料' : '去匹配'))
 
     const emptyAction = () => {
-        if (listType.value === 'send') {
+        if (listType.value === 'send' || listType.value === 'follower') {
             uni.switchTab({ url: '/pages/match/index' })
             return
         }
@@ -178,23 +204,23 @@
         uni.navigateTo({ url: '/pages/auth/realname' })
     }
 
-    // 3.1 未实名：可先收藏心动
+    // 未实名：可先关注 TA（沉没成本出路）
     const handleModalFavorite = () => {
         const user = pendingUser.value
         if (user) {
-            const added = userStore.addFavorite(user)
+            const result = userStore.follow(user)
             uni.showToast({
-                title: added ? '已收藏，实名后可发送心动' : '已在收藏列表中',
+                title: result.ok ? businessCopy.followSuccess : 'TA 已在你的关注里',
                 icon: 'none'
             })
         }
         closeModal()
     }
 
-    // ===== 回心动 =====
-    const handleLikeBack = (user) => {
+    // ===== 回心动：双向心动后可直接去交换微信 =====
+    const handleHeartBack = (user) => {
         if (user.mutual) {
-            uni.showToast({ title: '你们已双向匹配', icon: 'none' })
+            uni.navigateTo({ url: `/pages/match/apply?userId=${user.id}&type=apply` })
             return
         }
 
@@ -206,7 +232,7 @@
                     visible: true,
                     mode: 'favorite',
                     title: '实名后即可发送心动',
-                    content: businessCopy.realNameGuide,
+                    content: businessCopy.followGuide,
                     confirmText: '去实名认证'
                 }
                 : { visible: true, ...payload }
@@ -215,14 +241,30 @@
 
         const result = equity.consumeLike()
         if (!result.ok) {
-            uni.showToast({ title: businessCopy.likeQuotaExhausted, icon: 'none' })
+            uni.showToast({ title: businessCopy.heartExhaustedGuide, icon: 'none' })
             return
         }
 
-        socialStore.addLike(user.id)
+        socialStore.addHeart(user.id)
         socialStore.setMutual(user.id)
         matchStore.createMatch(user.id)
-        uni.showToast({ title: '已回心动，双向匹配成功', icon: 'none' })
+        uni.showToast({ title: '你们互相心动了，可以交换微信了', icon: 'none' })
+    }
+
+    // ===== 回关注（弱关系，不占额度）=====
+    const handleFollowBack = (user) => {
+        if (userStore.isFollowing(user.id)) return
+        const { allowed, modal: payload } = guard('followUser')
+        if (!allowed) {
+            pendingUser.value = user
+            modal.value = { visible: true, ...payload }
+            return
+        }
+        const result = userStore.follow(user)
+        uni.showToast({
+            title: result.ok ? businessCopy.followSuccess : 'TA 已在你的关注里',
+            icon: 'none'
+        })
     }
 
     // ===== 跳转 =====
@@ -500,8 +542,8 @@
         font-size: 11px;
         color: $text-helper;
 
-        &.is-matched {
-            color: $primary-dark;
+        &.is-mutual {
+            color: #E8446C;
         }
     }
 

@@ -194,7 +194,7 @@
       "path": "pages/user/likeList",
       "style": {
         "navigationStyle": "custom",
-        "navigationBarTitleText": "喜欢列表"
+        "navigationBarTitleText": "心动关系"
       }
     },
     {
@@ -208,7 +208,7 @@
       "path": "pages/user/favoriteList",
       "style": {
         "navigationStyle": "custom",
-        "navigationBarTitleText": "我的收藏"
+        "navigationBarTitleText": "我的关注"
       }
     },
     {

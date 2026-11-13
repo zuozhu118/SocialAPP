@@ -9,6 +9,7 @@ import {
     formatRelativeTime
 } from '@/mock/dynamics'
 import { currentUserProfile } from '@/mock/users'
+import useUserStore from './user'
 import { todayStr } from '@/mock/index'
 
 const STORAGE_KEY = 'square_v1'
@@ -129,6 +130,14 @@ export default defineStore('square', {
                     liked: true,
                     commentCount: (item.commentList || []).length
                 })),
+
+        // 我关注的（关注的人发出的动态，按时间倒序；关注 = 0 成本收藏夹）
+        followFeed() {
+            const ids = (useUserStore().follows || []).map(item => Number(item.id))
+            return this.all
+                .filter(item => ids.includes(Number(item.userId)))
+                .sort((a, b) => b.createdAt - a.createdAt)
+        },
 
         // 我发布的动态
         myDynamics: (state) =>

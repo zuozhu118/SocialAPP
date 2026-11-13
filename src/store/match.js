@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { findUserById, currentUserProfile } from '@/mock/users'
 import useNotifyStore from './notify'
 import usePrivacyStore from './privacy'
+import useSocialStore from './social'
 import {
     seedMatches,
     seedApplications,
@@ -220,7 +221,9 @@ export default defineStore('match', {
          */
         canApplyWechat(userId) {
             const id = Number(userId)
+            // 双保险：匹配记录 + 双向心动都必须成立，交换微信的唯一前提
             if (!this.isMatched(id)) return { ok: false, reason: 'not_matched' }
+            if (!useSocialStore().isMutual(id)) return { ok: false, reason: 'not_mutual' }
             const exist = this.getMatch(id)
             if (exist.wechatStatus === 'agreed') return { ok: false, reason: 'agreed' }
 

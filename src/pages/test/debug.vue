@@ -23,8 +23,8 @@
                         <text class="debug-meta__value">{{ userStore.profileCompleteness }}%</text>
                     </view>
                     <view class="debug-meta__item">
-                        <text class="debug-meta__label">收藏心动</text>
-                        <text class="debug-meta__value">{{ userStore.favorites.length }} 个</text>
+                        <text class="debug-meta__label">我的关注</text>
+                        <text class="debug-meta__value">{{ userStore.follows.length }} 个</text>
                     </view>
                 </view>
             </view>
@@ -169,21 +169,25 @@
                 <view class="debug-card__title">个人中心与权益</view>
                 <view class="debug-meta">
                     <view class="debug-meta__item">
-                        <text class="debug-meta__label">我喜欢的</text>
-                        <text class="debug-meta__value">{{ social.myLikeCount }} 人</text>
+                        <text class="debug-meta__label">我的心动</text>
+                        <text class="debug-meta__value">{{ social.myHeartCount }} 人</text>
                     </view>
                     <view class="debug-meta__item">
-                        <text class="debug-meta__label">喜欢我的</text>
-                        <text class="debug-meta__value">{{ social.likesMeCount }} 人</text>
+                        <text class="debug-meta__label">心动我的</text>
+                        <text class="debug-meta__value">{{ social.heartsMeCount }} 人</text>
                     </view>
                     <view class="debug-meta__item">
                         <text class="debug-meta__label">待回应</text>
-                        <text class="debug-meta__value">{{ social.unmetLikeCount }} 人</text>
+                        <text class="debug-meta__value">{{ social.unmetHeartCount }} 人</text>
                     </view>
                 </view>
                 <view class="debug-meta">
                     <view class="debug-meta__item">
-                        <text class="debug-meta__label">今日关注</text>
+                        <text class="debug-meta__label">关注我的</text>
+                        <text class="debug-meta__value">{{ social.followerCount }} 人</text>
+                    </view>
+                    <view class="debug-meta__item">
+                        <text class="debug-meta__label">今日来访</text>
                         <text class="debug-meta__value">{{ social.todayFootprintCount }} 位</text>
                     </view>
                     <view class="debug-meta__item">
@@ -200,16 +204,16 @@
                     <button class="debug-btn" @click="goEquity">看权益中心</button>
                 </view>
                 <view class="debug-actions">
-                    <button class="debug-btn" @click="goLikeList">看喜欢列表</button>
-                    <button class="debug-btn" @click="simulateFootprint">+1 今日关注</button>
+                    <button class="debug-btn" @click="goLikeList">看心动关系</button>
+                    <button class="debug-btn" @click="simulateFootprint">+1 今日来访</button>
                 </view>
                 <view class="debug-actions">
-                    <button class="debug-btn" @click="addFavorite">+1 收藏心动</button>
+                    <button class="debug-btn" @click="addFollow">+1 关注</button>
                     <button class="debug-btn debug-btn--danger" @click="resetSocial">重置社交数据</button>
                 </view>
                 <text class="debug-card__hint">
-                    今日关注口径 = 当日真实主页浏览 + 未实名暂存心动，按同城异性统计；
-                    「+1 今日关注」会补一位同城异性浏览记录，用于验收 3.9 缘分足迹文案
+                    今日来访口径 = 当日真实主页浏览 + 未实名暂存心动，按同城异性统计；
+                    「+1 今日来访」会补一位同城异性浏览记录，用于验收 3.9 缘分足迹文案
                 </text>
             </view>
 
@@ -280,7 +284,7 @@
                     <button class="debug-btn" @click="goInvitePage">看邀请页</button>
                 </view>
                 <view class="debug-actions">
-                    <button class="debug-btn" @click="simulateLikeMe">模拟收到心动</button>
+                    <button class="debug-btn" @click="simulateHeartMe">模拟收到心动</button>
                     <button class="debug-btn" @click="simulateMatchM7">模拟匹配成功</button>
                 </view>
                 <view class="debug-actions">
@@ -417,7 +421,7 @@
                 <view class="debug-actions">
                     <button class="debug-btn debug-btn--danger" @click="clearAll">清空本地缓存</button>
                 </view>
-                <text class="debug-card__hint">清空后身份回到游客，额度与收藏一并重置</text>
+                <text class="debug-card__hint">清空后身份回到游客，额度与关注一并重置</text>
             </view>
         </view>
     </view>
@@ -506,7 +510,7 @@
     const clearAll = () => {
         uni.showModal({
             title: '清空本地缓存',
-            content: '将清除登录状态、额度、匹配关系与收藏，确定继续吗？',
+            content: '将清除登录状态、额度、匹配关系与关注，确定继续吗？',
             success: (res) => {
                 if (!res.confirm) return
                 try {
@@ -628,20 +632,20 @@
     const simulateFootprint = () => {
         const ok = social.simulateFootprint()
         uni.showToast({
-            title: ok ? `今日关注 +1，当前 ${social.todayFootprintCount} 位` : '同城关注已满',
+            title: ok ? `今日来访 +1，当前 ${social.todayFootprintCount} 位` : '同城来访记录已满',
             icon: 'none'
         })
     }
 
-    const addFavorite = () => {
-        const target = [13, 14, 3, 4].find(id => !userStore.isFavorited(id))
+    const addFollow = () => {
+        const target = [13, 14, 3, 4].find(id => !userStore.isFollowing(id))
         if (!target) {
-            uni.showToast({ title: '已收藏全部可选对象', icon: 'none' })
+            uni.showToast({ title: '已关注全部可选对象', icon: 'none' })
             return
         }
         const user = findUserById(target)
-        userStore.addFavorite({ ...user, age: user.age, occupation: user.occupation })
-        uni.showToast({ title: `已收藏 ${user.name}`, icon: 'none' })
+        userStore.follow({ ...user, age: user.age, occupation: user.occupation })
+        uni.showToast({ title: `已关注 ${user.name}`, icon: 'none' })
     }
 
     const resetSocial = () => {
@@ -695,10 +699,10 @@
         })
     }
 
-    const simulateLikeMe = () => {
-        const res = social.simulateLikeMe(11)
+    const simulateHeartMe = () => {
+        const res = social.simulateHeartMe(11)
         uni.showToast({
-            title: res.ok ? `已模拟 ${findUserById(11)?.name || ''} 心动你` : '该用户已在喜欢我的列表',
+            title: res.ok ? `已模拟 ${findUserById(11)?.name || ''} 心动你` : '该用户已在心动我的列表',
             icon: 'none'
         })
     }

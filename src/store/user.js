@@ -62,8 +62,9 @@ export default defineStore('user', {
             tags: [],
             photos: []
         },
-        // 收藏心动（注册未实名用户的沉没成本机制）
-        favorites: [],
+        // 我的关注（弱关系收藏夹：不限次数、不占额度、可随时取消）
+        // 说明：v8 起「喜欢 / 收藏心动」统一改名为「关注」，与稀缺的「心动」彻底分开
+        follows: [],
         // 认证奖励是否已发放（学历 / 工作，防重复发放）
         certRewarded: {
             education: false,
@@ -136,6 +137,8 @@ export default defineStore('user', {
             if (!change || !change.at || !this.cityChangeRemainHours) return null
             return { from: change.from, to: change.to, hours: this.cityChangeRemainHours }
         },
+        // 我关注了多少人（关注不限次数，所以这里只做展示，不做任何拦截）
+        followCount: (state) => state.follows.length,
         // 资料完整度（0-100）
         profileCompleteness: (state) => {
             const p = state.profile
@@ -168,7 +171,8 @@ export default defineStore('user', {
             this.authStatus = { ...this.authStatus, ...(cache.authStatus || {}) }
             this.verifications = { ...this.verifications, ...(cache.verifications || {}) }
             this.profile = { ...this.profile, ...(cache.profile || {}) }
-            this.favorites = cache.favorites || []
+            // 兼容旧缓存：v7 及以前叫 favorites（收藏心动），v8 起统一为 follows（关注）
+            this.follows = cache.follows || cache.favorites || []
             this.certRewarded = { education: false, work: false, ...(cache.certRewarded || {}) }
             this.cityChange = cache.cityChange || { from: '', to: '', at: 0 }
         },
@@ -180,7 +184,7 @@ export default defineStore('user', {
                 authStatus: this.authStatus,
                 verifications: this.verifications,
                 profile: this.profile,
-                favorites: this.favorites,
+                follows: this.follows,
                 certRewarded: this.certRewarded,
                 cityChange: this.cityChange
             })
@@ -354,12 +358,16 @@ export default defineStore('user', {
             this.persist()
         },
 
-        // ===== 收藏心动 =====
-        addFavorite(user) {
-            if (!user || !user.id) return false
-            if (this.favorites.some(item => item.id === user.id)) return false
-            this.favorites.unshift({
-                id: user.id,
+        // ===== 关注（0 成本、不限次数、不占额度）=====
+        // 关注 = 把合眼缘的 TA 放进收藏夹，等心动额度刷新后再表达心动
+        follow(user) {
+            if (!user || !user.id) return { ok: false, reason: 'invalid' }
+            const id = Number(user.id)
+            if (this.follows.some(item => Number(item.id) === id)) {
+                return { ok: false, reason: 'exists' }
+            }
+            this.follows.unshift({
+                id,
                 name: user.name,
                 age: user.age,
                 avatar: user.avatar,
@@ -368,14 +376,41 @@ export default defineStore('user', {
                 time: Date.now()
             })
             this.persist()
-            return true
+            return { ok: true }
+        },
+
+        unfollow(userId) {
+            const id = Number(userId)
+            const before = this.follows.length
+            this.follows = this.follows.filter(item => Number(item.id) !== id)
+            this.persist()
+            return { ok: this.follows.length < before }
+        },
+
+        isFollowing(userId) {
+            return this.follows.some(item => Number(item.id) === Number(userId))
+        },
+
+        // 关注 / 取消关注（一个入口，页面不必各自写 if）
+        toggleFollow(user) {
+            if (!user || !user.id) return { ok: false, reason: 'invalid' }
+            if (this.isFollowing(user.id)) {
+                this.unfollow(user.id)
+                return { ok: true, following: false }
+            }
+            const res = this.follow(user)
+            return { ok: res.ok, following: res.ok }
+        },
+
+        // ===== 兼容旧调用名（等价于关注）=====
+        addFavorite(user) {
+            return this.follow(user).ok
         },
         removeFavorite(userId) {
-            this.favorites = this.favorites.filter(item => item.id !== Number(userId))
-            this.persist()
+            this.unfollow(userId)
         },
         isFavorited(userId) {
-            return this.favorites.some(item => item.id === Number(userId))
+            return this.isFollowing(userId)
         },
 
         // ===== 登出 =====
@@ -395,7 +430,7 @@ export default defineStore('user', {
                 tags: [],
                 photos: []
             }
-            this.favorites = []
+            this.follows = []
             this.certRewarded = { education: false, work: false }
             this.cityChange = { from: '', to: '', at: 0 }
             this.persist()
